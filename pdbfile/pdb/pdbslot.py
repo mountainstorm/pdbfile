@@ -28,7 +28,7 @@ from cvinfo import AttrSlotSym
 class PdbSlot(object):
     '''The representation of a local variable slot.'''
 
-    def __init__(self, bits, typind):
+    def __init__(self, bits):
         slot = AttrSlotSym()
 
         slot.index = bits.read_uint32()
@@ -44,4 +44,3 @@ class PdbSlot(object):
         '''The name of this variable slot; unicode'''
         self.flags = slot.flags
         '''The flags associated with this slot; ushort'''
-        typind[0] = slot.typind

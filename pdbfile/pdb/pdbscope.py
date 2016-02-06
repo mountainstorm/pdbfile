@@ -46,9 +46,10 @@ class PdbScope(object):
         '''The IL offset of this scope; uint'''
         self.length = length
         '''The length of this scope; uint'''
+        self.typind = 0
 
     @classmethod
-    def PdbScope(cls, func_offset, block, bits, typind):
+    def PdbScope(cls, func_offset, block, bits):
         '''Creates a PdbScope object
            * func_offset; uint
            * block; BlockSym32
@@ -56,7 +57,6 @@ class PdbScope(object):
            * typind; [uint]'''
         self = PdbScope(block.off, block.length, None, None, None)
         self.offset = block.off - func_offset
-        typind[0] = 0
 
         constants = []
         scopes = []
@@ -81,9 +81,11 @@ class PdbScope(object):
                 sub.name = bits.skip_cstring()
 
                 bits.position = stop
-                scopes.append(PdbScope(func_offset, sub, bits, typind))
+                scopes.append(PdbScope(func_offset, sub, bits))
+                self.typind = scopes[-1].typind
             elif rec == SYM.S_MANSLOT:
-                slots.append(PdbSlot(bits, typind))
+                slots.append(PdbSlot(bits))
+                self.typind = slots[-1].typind
                 bits.position = stop
             elif rec == SYM.S_UNAMESPACE:
                 used_namespaces.append(bits.read_cstring())
