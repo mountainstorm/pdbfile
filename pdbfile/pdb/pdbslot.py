@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 # coding: utf-8
 
 # Copyright (c) 2016 Mountainstorm
@@ -22,23 +22,26 @@
 # SOFTWARE.
 
 from __future__ import unicode_literals, print_function
+from cvinfo import AttrSlotSym
 
 
-class PdbSource(object):
-	'''A source file in the program.'''
+class PdbSlot(object):
+    '''The representation of a local variable slot.'''
 
-    def __init__(self, name, doctype, language, vendor, algorithm_id, checksum, source):
-        self.name = name
-        '''The name of the source file; unicode'''
-        self.doctype = doctype
-        '''The DocType for this source; guid'''
-        self.language = language
-        '''Pdb source language; guid'''
-        self.vendor = vendor
-        '''Pdb source vendor; guid'''
-        self.algorithm_id = algorithm_id
-        '''Pdb algorithm id; guid'''
-        self.checksum = checksum
-        '''Checksum for this pdb; bytearray'''
-        self.source = source
-        '''The embeded source in this pdb; bytearray'''
+    def __init__(self, bits, typind):
+        slot = AttrSlotSym()
+
+        slot.index = bits.read_uint32()
+        slot.typind = bits.read_uint32()
+        slot.off_cod = bits.read_uint32()
+        slot.seg_cod = bits.read_uint16()
+        slot.flags = bits.read_uint16()
+        slot.name = bits.read_cstring()
+
+        self.slot = slot.index
+        '''The slot number; int'''
+        self.name = slot.name
+        '''The name of this variable slot; unicode'''
+        self.flags = slot.flags
+        '''The flags associated with this slot; ushort'''
+        typind[0] = slot.typind

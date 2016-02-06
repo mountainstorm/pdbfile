@@ -24,6 +24,13 @@
 from __future__ import unicode_literals, print_function
 
 
+from pdbfile import PdbFile
+from pdbfileheader import PdbFileHeader
+from pdbstreamhelper import PdbStreamHelper
+from msfdirectory import MsfDirectory
+from bitaccess import BitAccess
+
+
 class PdbReader(object):
     '''An object that can map offsets in an IL stream to source locations and block scopes.'''
 
@@ -64,11 +71,11 @@ class PdbReader(object):
     @classmethod
     def get_pdb_properties(cls, pdb_file):
         '''Gets the properties of a given pdb.  Throws IOException on error'''
-        BitAccess bits = BitAccess(512 * 1024)
-        with open(pdb_file) as pdb_stream:
-            PdbFileHeader header = PdbFileHeader(pdbStream, bits)
-            PdbStreamHelper reader = PdbStreamHelper(pdbStream, header.page_size)
-            MsfDirectory directory = MsfDirectory(reader, header, bits)
+        bits = BitAccess(512 * 1024)
+        with open(pdb_file, 'rb') as pdb_stream:
+            header = PdbFileHeader(pdb_stream, bits)
+            reader = PdbStreamHelper(pdb_stream, header.page_size)
+            directory = MsfDirectory(reader, header, bits)
 
             directory.streams[1].read(reader, bits)
 
@@ -76,8 +83,11 @@ class PdbReader(object):
             sig = bits.read_int32()   #  4..7  Signature
             age = bits.read_int32()   #  8..11 Age
             guid = bits.ReadGuid();   # 12..27 GUID
-        return signature, age, sig
+        return guid, ver, age, sig
 
-    def get_function_From_token(method_token):
+    def get_function_From_token(self, method_token):
         '''Retreives a PdbFunction by its metadata token'''
-        return _pdb_function_map.try_get_value(method_token)
+        retval = None
+        if method_token in self._pdb_function_map:
+            retval = self._pdb_function_map[method_token]
+        return retval

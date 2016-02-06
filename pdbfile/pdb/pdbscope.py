@@ -24,10 +24,14 @@
 from __future__ import unicode_literals, print_function
 
 
+from pdbslot import PdbSlot
+from pdbconstant import PdbConstant
+
+
 class PdbScope(object):
     '''Represents a scope within a function or class.'''
 
-    def __init__(address, length, slots, PdbConstant[] constants, string[] usedNamespaces):
+    def __init__(self, address, length, slots, constants, used_namespaces):
         self.constants = constants
         '''A list of constants defined in this scope; PdbConstant[]'''
         self.slots = slots
@@ -44,15 +48,14 @@ class PdbScope(object):
         '''The length of this scope; uint'''
 
     @classmethod
-    def PdbScope(func_offset, block, bits, typind):
+    def PdbScope(cls, func_offset, block, bits, typind):
         '''Creates a PdbScope object
            * func_offset; uint
            * block; BlockSym32
            * bits; BitAccess
            * typind; [uint]'''
-        self.address = block.off
+        self = PdbScope(block.off, block.length, None, None, None)
         self.offset = block.off - func_offset
-        self.length = block.length
         typind[0] = 0
 
         constants = []
@@ -78,7 +81,7 @@ class PdbScope(object):
                 sub.name = bits.skip_cstring()
 
                 bits.position = stop
-                scopes.append(PdbScope(funcOffset, sub, bits, typind))
+                scopes.append(PdbScope(func_offset, sub, bits, typind))
             elif rec == SYM.S_MANSLOT:
                 slots.append(PdbSlot(bits, typind))
                 bits.position = stop
@@ -97,7 +100,7 @@ class PdbScope(object):
         if bits.position != block.end:
             raise Exception('Not at S_END')
 
-        esiz = bits.read_uint16()
+        bits.read_uint16() # esiz
         erec = bits.read_uint16()
         if erec != SYM.S_END:
             raise Exception('Missing S_END')

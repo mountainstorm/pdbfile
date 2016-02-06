@@ -31,27 +31,27 @@ class BitAccess(object):
         self.buffer = bytearray(capacity)
         self.position = 0
 
-    def fill_buffer(stream, capacity):
+    def fill_buffer(self, stream, capacity):
         self.min_capacity(capacity)
-        pos = steam.tell()
+        pos = stream.tell()
         stream.seek(0)
         self.buffer = stream.read(capacity)
         stream.seek(pos)
         self.position = 0
 
-    def append(stream, count):
-        pos = steam.tell()
+    def append(self, stream, count):
+        pos = stream.tell()
         stream.seek(self.position)
         self.buffer = buffer + stream.read(count)
         stream.seek(pos)
         self.position += count
 
-    def min_capacity(capacity):
+    def min_capacity(self, capacity):
         if len(self.buffer) < capacity:
             self.buffer = bytearray(capacity)
         self.position = 0
 
-    def align(alignment):
+    def align(self, alignment):
         while (self.position % alignment) != 0:
             self.position += 1
 
@@ -112,7 +112,7 @@ class BitAccess(object):
 
     def read_cstring(self):
         length = 0
-        while (self.position + length < len(self.buffer) &&
+        while (self.position + length < len(self.buffer) and
                self.buffer[self.position + length] != 0):
             length += 1
         value = buffer[self.position:self.position+length].decode('utf-8', 'ignore')
@@ -120,14 +120,14 @@ class BitAccess(object):
         return value
 
     def skip_cstring(self):
-        read_cstring()
+        self.read_cstring()
 
     def read_guid(self):
         return uuid.UUID(self.read(16))
 
     def read_string(self):
         length = 0
-        while (self.position + length < len(self.buffer) &&
+        while (self.position + length < len(self.buffer) and
                self.buffer[self.position+length] != 0):
             length += 2
         value = buffer[self.position:self.position+length].decode('utf-16', 'ignore')

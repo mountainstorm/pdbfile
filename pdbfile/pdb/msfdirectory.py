@@ -24,6 +24,9 @@
 from __future__ import unicode_literals, print_function
 
 
+from datastream import DataStream
+
+
 class MsfDirectory(object):
     def __init__(self, reader, head, bits):
         self.streams = []

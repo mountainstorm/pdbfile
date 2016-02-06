@@ -1,4 +1,4 @@
- #!/usr/bin/python
+#!/usr/bin/python
 # coding: utf-8
 
 # Copyright (c) 2016 Mountainstorm
@@ -22,26 +22,13 @@
 # SOFTWARE.
 
 from __future__ import unicode_literals, print_function
-from cvinfo import AttrSlotSym
 
 
-class PdbSlot(object):
-    '''The representation of a local variable slot.'''
+class PdbSequencePointCollection(object):
+    '''A collection of sequence points (usually for a single function).'''
 
-    def __init__(self, bits, typind):
-        AttrSlotSym slot
-
-        slot.index = bits.read_uint32()
-        slot.typind = bits.read_uint32()
-        slot.off_cod = bits.read_uint32()
-        slot.seg_cod = bits.read_uint16()
-        slot.flags = bits.read_uint16()
-        slot.name = bits.read_cstring()
-
-        self.slot = slot.index
-        '''The slot number; int'''
-        self.name = slot.name
-        '''The name of this variable slot; unicode'''
-        self.flags = slot.flags
-        '''The flags associated with this slot; ushort'''
-        typind[0] = slot.typind
+    def __init__(self, srcfile, count):
+        self.srcfile = srcfile
+        '''The source file these sequence points came from; PdbSource'''
+        self.lines = [None] * count 
+        '''A list of IL sequence points in this collection; PdbSequencePoint[]'''

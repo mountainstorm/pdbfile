@@ -24,6 +24,9 @@
 from __future__ import unicode_literals, print_function
 
 
+from pdbexception import PdbException
+
+
 class DataStream(object):
     def __init__(self, content_size, bits, count):
         self.content_size = content_size
@@ -34,10 +37,10 @@ class DataStream(object):
         bits.min_capacity(self.content_size)
         bits.buffer = self.read(reader, 0, 0, self.content_size)
 
-    def read(self, reader, position, offset, data):
+    def read(self, reader, position, bytedata, offset, data):
         if position + data > self.content_size:
             raise PdbException('DataStream can\'t read off end of stream. ' +
-                               '(pos=%u,siz=%u)' % (position, data)
+                               '(pos=%u,siz=%u)' % (position, data))
         if position == self.content_size:
             return None
         left = data
@@ -49,8 +52,8 @@ class DataStream(object):
             todo = reader.page_size - rema
             if todo > left:
                 todo = left
-            reader.seek(_pages[page], rema)
-            bytes = reader.read(offset, todo)
+            reader.seek(self.pages[page], rema)
+            reader.read(bytedata, offset, todo)
             offset += todo
             left -= todo
             page += 1
@@ -61,8 +64,7 @@ class DataStream(object):
             if todo > left:
                 todo = left
             reader.seek(self.pages[page], 0)
-            read = reader.read(offset, todo)
-
+            reader.read(bytedata, offset, todo)
             offset += todo
             left -= todo
             page += 1

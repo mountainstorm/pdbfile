@@ -24,6 +24,9 @@
 from __future__ import unicode_literals, print_function
 
 
+from dbiseccon import DbiSecCon
+
+
 class DbiModuleInfo(object):
     def __init__(self, bits, read_strings):
         self.opened = bits.read_int32()              # 0..3
@@ -42,12 +45,12 @@ class DbiModuleInfo(object):
             self.module_name = bits.read_cstring()
             self.object_name = bits.read_cstring()
         else:
-            bits.skip_cstring()
-            bits.skip_cstring()
+            self.module_name = bits.skip_cstring()
+            self.object_name = bits.skip_cstring()
         bits.align(4)
         #if opened != 0 || pad1 != 0:
-        #raise PdbException('Invalid DBI module. ' +
-        #                   '(opened=%u, pad=%u)' % (self.opened, self.pad1))
+        #   raise PdbException('Invalid DBI module. ' +
+        #                      '(opened=%u, pad=%u)' % (self.opened, self.pad1))
 
     def __str__(self):
-        return moduleName
+        return self.module_name

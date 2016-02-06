@@ -20,23 +20,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from __future__ import unicode_literals, print_function
-
-
-class BitSet(object):
-    def __init__(self, bits):
-        self.size = bits.read_int32()    # 0..3 : Number of words
-        self.words = bits.read_uint32(self.size)
-
-    def is_set(self, index):
-        int word = index / 32
-        if word >= self.size:
-            return False
-        return (self.words[word] & self.get_bit(index)) != 0
-
-    def get_bit(self, index):
-        return 1 << (index % 32)
-
-    def is_empty(self):
-        return self.size == 0

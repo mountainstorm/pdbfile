@@ -22,32 +22,23 @@
 # SOFTWARE.
 
 from __future__ import unicode_literals, print_function
-import os
 
 
-# 0x4D, 0x69, 0x63, 0x72, 0x6F, 0x73, 0x6F, 0x66, // "Microsof"
-# 0x74, 0x20, 0x43, 0x2F, 0x43, 0x2B, 0x2B, 0x20, // "t C/C++ "
-# 0x4D, 0x53, 0x46, 0x20, 0x37, 0x2E, 0x30, 0x30, // "MSF 7.00"
-# 0x0D, 0x0A, 0x1A, 0x44, 0x53, 0x00, 0x00, 0x00  // "^^^DS^^^"
+class PdbSource(object):
+    '''A source file in the program.'''
 
-
-class PdbFileHeader(object):
-    def __init__(self, reader, bits):
-        bits.min_capacity(56)
-        reader.seek(0)
-        bits.fill_buffer(reader, 52)
-
-        self.magic = bytearray(32)
-        bits.read_bytes(self.magic)                 #   0..31
-        self.page_size = bits.read_int32()          #  32..35
-        self.free_pagemap = bits.read_int32()       #  36..39
-        self.pages_used = bits.read_int32()         #  40..43
-        self.directory_size = bits.read_int32()     #  44..47
-        self.zero = bits.read_int32()               #  48..51
-
-        directory_pages = (
-            ((((self.directory_size + self.page_size - 1) / self.page_size) *
-            4) + self.page_size - 1) / self.page_size
-        )
-        bits.fill_buffer(reader, directory_pages * 4)
-        this.directory_root = bits.read_int32(directory_pages)
+    def __init__(self, name, doctype, language, vendor, algorithm_id, checksum, source):
+        self.name = name
+        '''The name of the source file; unicode'''
+        self.doctype = doctype
+        '''The DocType for this source; guid'''
+        self.language = language
+        '''Pdb source language; guid'''
+        self.vendor = vendor
+        '''Pdb source vendor; guid'''
+        self.algorithm_id = algorithm_id
+        '''Pdb algorithm id; guid'''
+        self.checksum = checksum
+        '''Checksum for this pdb; bytearray'''
+        self.source = source
+        '''The embeded source in this pdb; bytearray'''
