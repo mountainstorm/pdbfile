@@ -29,6 +29,7 @@ from pdbdebugexception import PdbDebugException
 from pdbscope import PdbScope
 from pdbslot import PdbSlot
 from pdbconstant import PdbConstant
+from cvinfo import SYM, ManProcSym, BlockSym32, OemSymbol
 
 
 class PdbFunction(object):
@@ -50,7 +51,7 @@ class PdbFunction(object):
             return 0
 
     @classmethod
-    def by_address_and_token(self, fx, fy):
+    def by_address_and_token(cls, fx, fy):
         if fx.segment < fy.segment:
             return -1
         elif fx.segment > fy.segment:

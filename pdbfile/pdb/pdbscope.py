@@ -26,6 +26,7 @@ from __future__ import unicode_literals, print_function
 
 from pdbslot import PdbSlot
 from pdbconstant import PdbConstant
+from cvinfo import SYM, BlockSym32
 
 
 class PdbScope(object):

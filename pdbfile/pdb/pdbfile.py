@@ -37,6 +37,8 @@ from dbimoduleinfo import DbiModuleInfo
 from pdbfileheader import PdbFileHeader
 from pdbstreamhelper import PdbStreamHelper
 from msfdirectory import MsfDirectory
+from pdbfunction import PdbFunction
+from cvinfo import DEBUG_S_SUBSECTION, CV_FileCheckSum, CV_LineSection, CV_SourceFile, CV_Line, CV_Column, CV_Line_Flags
 
 
 class PdbFile(object):
@@ -136,7 +138,13 @@ class PdbFile(object):
         PdbFile.s_match.segment = sec
         PdbFile.s_match.address = off
         # XXX: binary search
-        return Array.BinarySearch(funcs, PdbFile.s_match, PdbFunction.by_address)
+        result = -1
+        i = 0
+        for i in range(0, len(funcs)):
+            if PdbFunction.by_address(PdbFile.s_match, funcs[i]) == 0:
+                result = i
+                break
+        return result
 
     @classmethod
     def load_managed_lines(cls, funcs, names, bits, directory, name_index, reader, limit, sources):

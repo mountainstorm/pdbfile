@@ -23,6 +23,8 @@
 
 from __future__ import unicode_literals, print_function
 
+import uuid
+
 
 class FLOAT10(object):
     def __init__(self):
@@ -640,7 +642,7 @@ class CV_PMFR32_VBASE(object):
 # Type record for LF_MODIFIER
 class LeafModifier(object):
     def __init__(self):
-        # leaf = 0      # LF_MODIFIER [TYPTYPE]
+        # leaf = LEAF.LF_MODIFIER      # LF_MODIFIER [TYPTYPE]
         self.type = 0 # (type index) modified type
         self.attr = CV_modifier() # modifier attribute modifier_t
 
@@ -659,7 +661,7 @@ class LeafPointerAttr(object):
 # LeafPointer; wrapps this a an non used struct
 class LeafPointerBody(object):
     def __init__(self):
-        # leaf = 0  # LF_POINTER [TYPTYPE]
+        # self.leaf = LEAF.LF_POINTER # LF_POINTER [TYPTYPE]
         self.utype = 0 # (type index) type index of the underlying type
         self.attr = LeafPointerAttr()
 
@@ -667,7 +669,7 @@ class LeafPointerBody(object):
 # type record for LF_ARRAY
 class LeafArray(object):
     def __init__(self):
-        # self.leaf = 0 # LF_ARRAY [TYPTYPE]
+        # self.leaf = LEAF.LF_ARRAY # LF_ARRAY [TYPTYPE]
         self.elemtype = 0 # (type index) type index of element type
         self.idxtype = 0 # (type index) type index of indexing type
         self.data = bytearray() # variable length data specifying size in bytes
@@ -677,7 +679,7 @@ class LeafArray(object):
 # type record for LF_CLASS, LF_STRUCTURE
 class LeafClass(object):
     def __init__(self):
-        # self.leaf = 0 # LF_CLASS, LF_STRUCT [TYPTYPE]
+        # self.leaf = LEAF.LF_CLASS # LF_CLASS, LF_STRUCT [TYPTYPE]
         self.count = 0 # count of number of elements in class
         self.property = 0 # (CV_prop_t) property attribute field (prop_t)
         self.field = 0 # (type index) type index of LF_FIELD descriptor list
@@ -690,879 +692,1446 @@ class LeafClass(object):
 # type record for LF_UNION
 class LeafUnion(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_UNION # LF_UNION [TYPTYPE]
+        self.count = 0 # count of number of elements in class
+        self.property = 0 # (CV_prop_t) property attribute field
+        self.field = 0 # (type index) type index of LF_FIELD descriptor list
+        self.data = bytearray() # variable length data describing length of
+        self.name = None # unicode
 
-    # internal ushort leaf;      // LF_UNION [TYPTYPE] # count of number of elements in class # (CV_prop_t) property attribute field # (type index) type index of LF_FIELD descriptor list # variable length data describing length of
-#  type record for LF_ALIAS
+
+# type record for LF_ALIAS
 class LeafAlias(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ALIAS # LF_ALIAS [TYPTYPE]
+        self.utype = 0 # (type index) underlying type
+        self.name = None # alias name - unicode
 
-    # internal ushort leaf;      // LF_ALIAS [TYPTYPE] # (type index) underlying type # alias name
-#  type record for LF_MANAGED
+
+# type record for LF_MANAGED
 class LeafManaged(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_MANAGED # LF_MANAGED [TYPTYPE]
+        self.name = None # utf8, zero terminated managed type name - unicode
 
-    # internal ushort leaf;      // LF_MANAGED [TYPTYPE] # utf8, zero terminated managed type name
-#  type record for LF_ENUM
+
+# type record for LF_ENUM
 class LeafEnum(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ENUM # LF_ENUM [TYPTYPE]
+        self.count = 0 # count of number of elements in class
+        self.property = 0 # (CV_propt_t) property attribute field
+        self.utype = 0 # (type index) underlying type of the enum
+        self.field = 0 # (type index) type index of LF_FIELD descriptor list
+        self.name = None # length prefixed name of enum
 
-    # internal ushort leaf;      // LF_ENUM [TYPTYPE] # count of number of elements in class # (CV_propt_t) property attribute field # (type index) underlying type of the enum # (type index) type index of LF_FIELD descriptor list # length prefixed name of enum
-#  Type record for LF_PROCEDURE
+
+# Type record for LF_PROCEDURE
 class LeafProc(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_PROCEDURE # LF_PROCEDURE [TYPTYPE]
+        self.tvtype = 0 # (type index) type index of return value
+        self.callype = 0 # calling convention (CV_call_t)
+        self.reserved = 0 # reserved for future use
+        self.parmcount # number of parameters
+        self.arglist # (type index) type index of argument list
 
-    # internal ushort leaf;      // LF_PROCEDURE [TYPTYPE] # (type index) type index of return value # calling convention (CV_call_t) # reserved for future use # number of parameters # (type index) type index of argument list
-#  Type record for member function
+
+# Type record for member function
 class LeafMFunc(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_MFUNCTION # LF_MFUNCTION [TYPTYPE]
+        self.rvtype = 0 # (type index) type index of return value
+        self.classtype = 0 # (type index) type index of containing class
+        self.reserved = 0 # (type index) type index of this pointer (model specific)
+        self.calltype = 0 # calling convention (call_t)
+        self.reserved = 0 # reserved for future use
+        self.parmcount = 0 # number of parameters
+        self.arglist = 0 # (type index) type index of argument list
+        self.thisadjust = 0 # this adjuster (long because pad required anyway)
 
-    # internal ushort leaf;      // LF_MFUNCTION [TYPTYPE] # (type index) type index of return value # (type index) type index of containing class # (type index) type index of this pointer (model specific) # calling convention (call_t) # reserved for future use # number of parameters # (type index) type index of argument list # this adjuster (long because pad required anyway)
-#  type record for virtual function table shape
+
+# Type record for virtual function table shape
 class LeafVTShape(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VTSHAPE # LF_VTSHAPE [TYPTYPE]
+        self.count = 0 # number of entries in vfunctable
+        self.desc = bytearray() # 4 bit (CV_VTS_desc) descriptors
 
-    # internal ushort leaf;      // LF_VTSHAPE [TYPTYPE] # number of entries in vfunctable # 4 bit (CV_VTS_desc) descriptors
-#  type record for cobol0
+
+# Type record for cobol0
 class LeafCobol0(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COBOL0 # LF_COBOL0 [TYPTYPE]
+        self.type = 0 # (type index) parent type record index
+        self.data = bytearray()
 
-    # internal ushort leaf;      // LF_COBOL0 [TYPTYPE] # (type index) parent type record index
-#  type record for cobol1
+
+# Type record for cobol1
 class LeafCobol1(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COBOL1 # LF_COBOL1 [TYPTYPE]
+        self.data = bytearray()
 
-    # internal ushort leaf;      // LF_COBOL1 [TYPTYPE]
-#  type record for basic array
+
+# Type record for basic array
 class LeafBArray(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_BARRAY # LF_BARRAY [TYPTYPE]
+        self.utype = 0 # (type index) type index of underlying type
 
-    # internal ushort leaf;      // LF_BARRAY [TYPTYPE] # (type index) type index of underlying type
-#  type record for assembler labels
+
+# Type record for assembler labels
 class LeafLabel(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_LABEL # LF_LABEL [TYPTYPE]
+        self.mode = 0 # addressing mode of label
 
-    # internal ushort leaf;      // LF_LABEL [TYPTYPE] # addressing mode of label
-#  type record for dimensioned arrays
+
+# Type record for dimensioned arrays
 class LeafDimArray(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_DIMARRAY # LF_DIMARRAY [TYPTYPE]
+        self.utype = 0 # (type index) underlying type of the array
+        self.diminfo = 0 # (type index) dimension information
+        self.name = None # length prefixed name
 
-    # internal ushort leaf;      // LF_DIMARRAY [TYPTYPE] # (type index) underlying type of the array # (type index) dimension information # length prefixed name
-#  type record describing path to virtual function table
+
+# Type record describing path to virtual function table
 class LeafVFTPath(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VFTPATH # LF_VFTPATH [TYPTYPE]
+        self.count = 0 # count of number of bases in path
+        self.bases = [] # (type index) bases from root to leaf
 
-    # internal ushort leaf;      // LF_VFTPATH [TYPTYPE] # count of number of bases in path # (type index) bases from root to leaf
-#  type record describing inclusion of precompiled types
+
+# Type record describing inclusion of precompiled types
 class LeafPreComp(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_PRECOMP # LF_PRECOMP [TYPTYPE]
+        self.start = 0 # starting type index included
+        self.count = 0 # number of types in inclusion
+        self.signature = 0 # signature
+        self.name = None # length prefixed name of included type file
 
-    # internal ushort leaf;      // LF_PRECOMP [TYPTYPE] # starting type index included # number of types in inclusion # signature # length prefixed name of included type file
-#  type record describing end of precompiled types that can be
-#  included by another file
+
+# Type record describing end of precompiled types that can be
+# included by another file
 class LeafEndPreComp(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ENDPRECOMP # LF_ENDPRECOMP [TYPTYPE]
+        self.signature = 0 # signature
 
-    # internal ushort leaf;      // LF_ENDPRECOMP [TYPTYPE] # signature
-#  type record for OEM definable type strings
+
+# Type record for OEM definable type strings
 class LeafOEM(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_OEM # LF_OEM [TYPTYPE]
+        self.cv_oem = 0 # MS assigned OEM identified
+        self.rec_oem  = 0 # OEM assigned type identifier
+        self.count = 0 # count of type indices to follow
+        self.index = [] # (type index) array of type indices followed
 
-    # internal ushort leaf;      // LF_OEM [TYPTYPE] # MS assigned OEM identified # OEM assigned type identifier # count of type indices to follow # (type index) array of type indices followed
+
 # by OEM defined data
 class OEM_ID(object):
-    def __init__(self):
-        self._OEM_MS_FORTRAN90 = 0xF090
-        self._OEM_ODI = 0x0010
-        self._OEM_THOMSON_SOFTWARE = 0x5453
-        self._OEM_ODI_REC_BASELIST = 0x0000
+    OEM_MS_FORTRAN90 = 0xF090
+    OEM_ODI = 0x0010
+    OEM_THOMSON_SOFTWARE = 0x5453
+    OEM_ODI_REC_BASELIST = 0x0000
+
 
 class LeafOEM2(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_OEM2 # LF_OEM2 [TYPTYPE]
+        self.id_oem = uuid.uuid() # an oem ID (Guid)
+        self.count = 0 # count of type indices to follow
+        self.index = [] # (type index) array of type indices followed
+                        # by OEM defined data
 
-    # internal ushort leaf;      // LF_OEM2 [TYPTYPE] # an oem ID (Guid) # count of type indices to follow # (type index) array of type indices followed
-# by OEM defined data
-#  type record describing using of a type server
+
+# Type record describing using of a type server
 class LeafTypeServer(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_TYPESERVER # LF_TYPESERVER [TYPTYPE]
+        self.signature = 0 # signature
+        self.age = 0 # age of database used by this module
+        self.name = None # length prefixed name of PDB
 
-    # internal ushort leaf;      // LF_TYPESERVER [TYPTYPE] # signature # age of database used by this module # length prefixed name of PDB
-#  type record describing using of a type server with v7 (GUID) signatures
+
+# Type record describing using of a type server with v7 (GUID) signatures
 class LeafTypeServer2(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_TYPESERVER2 # LF_TYPESERVER2 [TYPTYPE]
+        self.sig70 = uuid.uuid() # guid signature
+        self.age = 0 # age of database used by this module
+        self.name = None # length prefixed name of PDB
 
-    # internal ushort leaf;      // LF_TYPESERVER2 [TYPTYPE] # guid signature # age of database used by this module # length prefixed name of PDB
-#  description of type records that can be referenced from
-#  type records referenced by symbols
-#  type record for skip record
+
+# description of type records that can be referenced from
+# type records referenced by symbols
+
+
+# Type record for skip record
 class LeafSkip(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_SKIP # LF_SKIP [TYPTYPE]
+        self.type = 0 # (type index) next valid index
+        self.data = [] # pad data
 
-    # internal ushort leaf;      // LF_SKIP [TYPTYPE] # (type index) next valid index # pad data
-#  argument list leaf
+
+# Argument list leaf
 class LeafArgList(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ARGLIST # LF_ARGLIST [TYPTYPE]
+        self.count = 0 # number of arguments
+        self.arg = [] # (type index) number of arguments
 
-    # internal ushort leaf;      // LF_ARGLIST [TYPTYPE] # number of arguments # (type index) number of arguments
-#  derived class list leaf
+
+# Derived class list leaf
 class LeafDerived(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_DERIVED # LF_DERIVED [TYPTYPE]
+        self.count = 0 # number of arguments
+        self.drvdcls = [] # (type index) type indices of derived classes
 
-    # internal ushort leaf;      // LF_DERIVED [TYPTYPE] # number of arguments # (type index) type indices of derived classes
-#  leaf for default arguments
+
+# Leaf for default arguments
 class LeafDefArg(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_DEFARG # LF_DEFARG [TYPTYPE]
+        self.type = 0 # (type index) type of resulting expression
+        self.expr = bytearray() # length prefixed expression string
 
-    # internal ushort leaf;      // LF_DEFARG [TYPTYPE] # (type index) type of resulting expression # length prefixed expression string
-#  list leaf
-#      This list should no longer be used because the utilities cannot
-#      verify the contents of the list without knowing what type of list
-#      it is.  New specific leaf indices should be used instead.
+
+# List leaf
+#     This list should no longer be used because the utilities cannot
+#     verify the contents of the list without knowing what type of list
+#     it is.  New specific leaf indices should be used instead.
 class LeafList(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_LIST # LF_LIST [TYPTYPE]
+        self.data = bytearray() # data format specified by indexing type
 
-    # internal ushort leaf;      // LF_LIST [TYPTYPE] # data format specified by indexing type
-#  field list leaf
-#  This is the header leaf for a complex list of class and structure
-#  subfields.
+
+# Field list leaf
+# This is the header leaf for a complex list of class and structure
+# subfields.
 class LeafFieldList(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_FIELDLIST # LF_FIELDLIST [TYPTYPE]
+        self.data = bytearray()
 
-    # internal ushort leaf;      // LF_FIELDLIST [TYPTYPE] # field list sub lists
-#  type record for non-static methods and friends in overloaded method list
+
+# Type record for non-static methods and friends in overloaded method list
 class mlMethod(object):
     def __init__(self):
- # (CV_fldattr_t) method attribute # internal padding, must be 0 # (type index) index to type record for procedure # offset in vfunctable if intro virtual
+        self.attr = 0 # (CV_fldattr_t) method attribute
+        self.pad0 = 0 # internal padding, must be 0
+        self.index = 0 # (type index) index to type record for procedure
+        self.vbaseoff = [] # offset in vfunctable if intro virtual
+
+
 class LeafMethodList(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_METHODLIST # LF_METHODLIST [TYPTYPE]
+        self.m_list = [] # really a mlMethod type
 
-    # internal ushort leaf;      // LF_METHODLIST [TYPTYPE] # really a mlMethod type
-#  type record for LF_BITFIELD
+
+# Type record for LF_BITFIELD
 class LeafBitfield(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_BITFIELD # LF_BITFIELD [TYPTYPE]
+        self.type = 0 # (type index) type of bitfield
+        self.length = 0
+        self.position = 0
 
-    # internal ushort leaf;      // LF_BITFIELD [TYPTYPE] # (type index) type of bitfield
-#  type record for dimensioned array with constant bounds
+
+# Type record for dimensioned array with constant bounds
 class LeafDimCon(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_DIMCONU # LF_DIMCONU or LF_DIMCONLU [TYPTYPE]
+        self.typ = 0 # (type index) type of index
+        self.rank = 0 # number of dimensions
+        self.dim = [] # array of dimension information with
+                      # either upper bounds or lower/upper bound
 
-    # internal ushort leaf;      // LF_DIMCONU or LF_DIMCONLU [TYPTYPE] # (type index) type of index # number of dimensions # array of dimension information with
-# either upper bounds or lower/upper bound
-#  type record for dimensioned array with variable bounds
+
+# Type record for dimensioned array with variable bounds
 class LeafDimVar(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_DIMVARU # LF_DIMVARU or LF_DIMVARLU [TYPTYPE]
+        self.rank = 0 # number of dimensions
+        self.typ = 0 # (type index) type of index
+        self.dim = [] # (type index) array of type indices for either
+                      # variable upper bound or variable
+                      # lower/upper bound.  The count of type
+                      # indices is rank or rank*2 depending on
+                      # whether it is LFDIMVARU or LF_DIMVARLU.
+                      # The referenced types must be
+                      # LF_REFSYM or T_VOID
 
-    # internal ushort leaf;      // LF_DIMVARU or LF_DIMVARLU [TYPTYPE] # number of dimensions # (type index) type of index # (type index) array of type indices for either
-# variable upper bound or variable
-# lower/upper bound.  The count of type
-# indices is rank or rank*2 depending on
-# whether it is LFDIMVARU or LF_DIMVARLU.
-# The referenced types must be
-# LF_REFSYM or T_VOID
-#  type record for referenced symbol
+
+# Type record for referenced symbol
 class LeafRefSym(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_REFSYM # LF_REFSYM [TYPTYPE]
+        self.sym = bytearray() # copy of referenced symbol record
+                               # (including length)
 
-    # internal ushort leaf;      // LF_REFSYM [TYPTYPE] # copy of referenced symbol record
-# (including length)
-#  the following are numeric leaves.  They are used to indicate the
-#  size of the following variable length data.  When the numeric
-#  data is a single byte less than 0x8000, then the data is output
-#  directly.  If the data is more the 0x8000 or is a negative value,
-#  then the data is preceeded by the proper index.
-#
-#  signed character leaf
+
+# the following are numeric leaves.  They are used to indicate the
+# size of the following variable length data.  When the numeric
+# data is a single byte less than 0x8000, then the data is output
+# directly.  If the data is more the 0x8000 or is a negative value,
+# then the data is preceeded by the proper index.
+
+# signed character leaf
 class LeafChar(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_CHAR # LF_CHAR [TYPTYPE]
+        self.val = 0 # signed 8-bit value
 
-    # internal ushort leaf;      // LF_CHAR [TYPTYPE] # signed 8-bit value
-#  signed short leaf
+
+# signed short leaf
 class LeafShort(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_SHORT # LF_SHORT [TYPTYPE]
+        self.val = 0 # signed 16-bit value
 
-    # internal ushort leaf;      // LF_SHORT [TYPTYPE] # signed 16-bit value
-#  ushort leaf
+
+# ushort leaf
 class LeafUShort(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ushort # LF_ushort [TYPTYPE]
+        self.val = 0 # unsigned 16-bit value
 
-    # internal ushort leaf;      // LF_ushort [TYPTYPE] # unsigned 16-bit value
-#  signed (32-bit) long leaf
+
+# signed (32-bit) long leaf
 class LeafLong(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_LONG # LF_LONG [TYPTYPE]
+        self.val = 0 # signed 32-bit value
 
-    # internal ushort leaf;      // LF_LONG [TYPTYPE] # signed 32-bit value
-#  uint    leaf
+
+# uint leaf
 class LeafULong(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_ULONG # LF_ULONG [TYPTYPE]
+        self.val = 0 # unsigned 32-bit value
 
-    # internal ushort leaf;      // LF_ULONG [TYPTYPE] # unsigned 32-bit value
-#  signed quad leaf
+
+# signed quad leaf
 class LeafQuad(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_QUAD # LF_QUAD [TYPTYPE]
+        self.val = 0 # signed 64-bit value
 
-    # internal ushort leaf;      // LF_QUAD [TYPTYPE] # signed 64-bit value
-#  unsigned quad leaf
+
+# unsigned quad leaf
 class LeafUQuad(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_UQUAD # LF_UQUAD [TYPTYPE]
+        self.val = 0 # unsigned 64-bit value
 
-    # internal ushort leaf;      // LF_UQUAD [TYPTYPE] # unsigned 64-bit value
-#  signed int128 leaf
+
+# signed int128 leaf
 class LeafOct(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_OCT # LF_OCT [TYPTYPE]
+        self.val0 = 0 # signed 128-bit value
+        self.val1 = 0 # signed 128-bit value
 
-    # internal ushort leaf;      // LF_OCT [TYPTYPE] # signed 128-bit value
-#  unsigned int128 leaf
+# unsigned int128 leaf
 class LeafUOct(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_UOCT # LF_UOCT [TYPTYPE]
+        self.val0 = 0 # unsigned 128-bit value
+        self.val1 = 0 # unsigned 128-bit value
 
-    # internal ushort leaf;      // LF_UOCT [TYPTYPE] # unsigned 128-bit value
-#  real 32-bit leaf
+
+# real 32-bit leaf
 class LeafReal32(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_REAL32 # LF_REAL32 [TYPTYPE]
+        self.val = 0 # 32-bit real value
 
-    # internal ushort leaf;      // LF_REAL32 [TYPTYPE] # 32-bit real value
-#  real 64-bit leaf
+
+# real 64-bit leaf
 class LeafReal64(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_REAL64 # LF_REAL64 [TYPTYPE]
+        self.val = 0 # 64-bit real value
 
-    # internal ushort leaf;      // LF_REAL64 [TYPTYPE] # 64-bit real value
-#  real 80-bit leaf
+
+# real 80-bit leaf
 class LeafReal80(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_REAL80 # LF_REAL80 [TYPTYPE]
+        self.val = FLOAT10() # 80-bit real value
 
-    # internal ushort leaf;      // LF_REAL80 [TYPTYPE] # real 80-bit value
-#  real 128-bit leaf
+
+# real 128-bit leaf
 class LeafReal128(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_REAL128 # LF_REAL128 [TYPTYPE]
+        self.val0 = 0 # real 128-bit value
+        self.val1 = 0 # real 128-bit value
 
-    # internal ushort leaf;      // LF_REAL128 [TYPTYPE] # real 128-bit value
-#  complex 32-bit leaf
+
+# complex 32-bit leaf
 class LeafCmplx32(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COMPLEX32 # LF_COMPLEX32 [TYPTYPE]
+        self.val_real = 0 # real component
+        self.val_imag = 0 # imaginary component
 
-    # internal ushort leaf;      // LF_COMPLEX32 [TYPTYPE] # real component # imaginary component
-#  complex 64-bit leaf
+
+# complex 64-bit leaf
 class LeafCmplx64(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COMPLEX64 # LF_COMPLEX64 [TYPTYPE]
+        self.val_real = 0 # real component
+        self.val_imag = 0 # imaginary component
 
-    # internal ushort leaf;      // LF_COMPLEX64 [TYPTYPE] # real component # imaginary component
-#  complex 80-bit leaf
+
+# complex 80-bit leaf
 class LeafCmplx80(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COMPLEX80 # LF_COMPLEX80 [TYPTYPE]
+        self.val_real = FLOAT10() # real component
+        self.val_imag = FLOAT10() # imaginary component
 
-    # internal ushort leaf;      // LF_COMPLEX80 [TYPTYPE] # real component # imaginary component
-#  complex 128-bit leaf
+
+# complex 128-bit leaf
 class LeafCmplx128(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_COMPLEX128 # LF_COMPLEX128 [TYPTYPE]
+        self.val0_real = 0
+        self.val1_real = 0 # real component
+        self.val0_imag = 0
+        self.val1_imag = 0 # imaginary component
 
-    # internal ushort leaf;      // LF_COMPLEX128 [TYPTYPE] # real component # imaginary component
-#  variable length numeric field
+
+# variable length numeric field
 class LeafVarString(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VARSTRING # LF_VARSTRING [TYPTYPE]
+        slf.length = 0 # length of value in bytes
+        self.value = bytearray() # value
 
-    # internal ushort leaf;      // LF_VARSTRING [TYPTYPE] # length of value in bytes # value
-#  index leaf - contains type index of another leaf
-#  a major use of this leaf is to allow the compilers to emit a
-#  long complex list (LF_FIELD) in smaller pieces.
+
+# index leaf - contains type index of another leaf
+# a major use of this leaf is to allow the compilers to emit a
+# long complex list (LF_FIELD) in smaller pieces.
 class LeafIndex(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_INDEX # LF_INDEX [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0
+        self.index = 0 # (type index) type index of referenced leaf
 
-    # internal ushort leaf;      // LF_INDEX [TYPTYPE] # internal padding, must be 0 # (type index) type index of referenced leaf
-#  subfield record for base class field
+
+# subfield record for base class field
 class LeafBClass(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_BCLASS # LF_BCLASS [TYPTYPE]
+        self.attr = 0 # (CV_fldattr_t) attribute
+        self.index = 0 # (type index) type index of base class
+        self.offset = bytearray() # variable length offset of base within class
 
-    # internal ushort leaf;      // LF_BCLASS [TYPTYPE] # (CV_fldattr_t) attribute # (type index) type index of base class # variable length offset of base within class
-#  subfield record for direct and indirect virtual base class field
+
+# subfield record for direct and indirect virtual base class field
 class LeafVBClass(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VBCLASS # LF_VBCLASS | LV_IVBCLASS [TYPTYPE]
+        self.attr = 0 # (CV_fldattr_t) attribute
+        self.index = 0 # (type index) type index of direct virtual base class
+        self.vbptr = 0 # (type index) type index of virtual base pointer
+        self.vbpoff = bytearray() # virtual base pointer offset from address point
+                                  # followed by virtual base offset from vbtable
 
-    # internal ushort leaf;      // LF_VBCLASS | LV_IVBCLASS [TYPTYPE] # (CV_fldattr_t) attribute # (type index) type index of direct virtual base class # (type index) type index of virtual base pointer # virtual base pointer offset from address point
-# followed by virtual base offset from vbtable
-#  subfield record for friend class
+
+# subfield record for friend class
 class LeafFriendCls(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_FRIENDCLS # LF_FRIENDCLS [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0
+        self.index = 0 # (type index) index to type record of friend class
 
-    # internal ushort leaf;      // LF_FRIENDCLS [TYPTYPE] # internal padding, must be 0 # (type index) index to type record of friend class
-#  subfield record for friend function
+
+# subfield record for friend function
 class LeafFriendFcn(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_FRIENDFCN # LF_FRIENDFCN [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0
+        self.index = 0 # (type index) index to type record of friend function
+        self.name = None # name of friend function
 
-    # internal ushort leaf;      // LF_FRIENDFCN [TYPTYPE] # internal padding, must be 0 # (type index) index to type record of friend function # name of friend function
-#  subfield record for non-static data members
+
+# subfield record for non-static data members
 class LeafMember(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_MEMBER # LF_MEMBER [TYPTYPE]
+        self.attr = 0 # (CV_fldattr_t)attribute mask
+        self.index = 0 # (type index) index of type record for field
+        self.offset = bytearray() # variable length offset of field
+        self.name = None # length prefixed name of field
 
-    # internal ushort leaf;      // LF_MEMBER [TYPTYPE] # (CV_fldattr_t)attribute mask # (type index) index of type record for field # variable length offset of field # length prefixed name of field
-#  type record for static data members
+
+# type record for static data members
 class LeafSTMember(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_STMEMBER # LF_STMEMBER [TYPTYPE]
+        self.attr = 0 # (CV_fldattr_t) attribute mask
+        self.index = 0 # (type index) index of type record for field
+        self.name = None # length prefixed name of field
 
-    # internal ushort leaf;      // LF_STMEMBER [TYPTYPE] # (CV_fldattr_t) attribute mask # (type index) index of type record for field # length prefixed name of field
-#  subfield record for virtual function table pointer
+
+# subfield record for virtual function table pointer
 class LeafVFuncTab(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VFUNCTAB # LF_VFUNCTAB [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0
+        self.type = 0 # (type index) type index of pointer
 
-    # internal ushort leaf;      // LF_VFUNCTAB [TYPTYPE] # internal padding, must be 0 # (type index) type index of pointer
-#  subfield record for virtual function table pointer with offset
+
+# subfield record for virtual function table pointer with offset
 class LeafVFuncOff(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_VFUNCOFF # LF_VFUNCOFF [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0.
+        self.type = 0 # (type index) type index of pointer
+        self.offset = 0 # offset of virtual function table pointer
 
-    # internal ushort leaf;      // LF_VFUNCOFF [TYPTYPE] # internal padding, must be 0. # (type index) type index of pointer # offset of virtual function table pointer
-#  subfield record for overloaded method list
+
+# subfield record for overloaded method list
 class LeafMethod(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_METHOD # LF_METHOD [TYPTYPE]
+        self.count = 0 # number of occurrences of function
+        self.m_ist = 0 # (type index) index to LF_METHODLIST record
+        self.name = None # length prefixed name of method
 
-    # internal ushort leaf;      // LF_METHOD [TYPTYPE] # number of occurrences of function # (type index) index to LF_METHODLIST record # length prefixed name of method
-#  subfield record for nonoverloaded method
+
+# subfield record for nonoverloaded method
 class LeafOneMethod(object):
     def __init__(self):
+       # self.leaf = LEAF.LF_ONEMETHOD # LF_ONEMETHOD [TYPTYPE]
+       self.attr = 0 # (CV_fldattr_t) method attribute
+       self.index = 0 # (type index) index to type record for procedure
+       self.vbaseoff = [] # offset in vfunctable if intro virtual
+       self.name = None
 
-    # internal ushort leaf;      // LF_ONEMETHOD [TYPTYPE] # (CV_fldattr_t) method attribute # (type index) index to type record for procedure # offset in vfunctable if intro virtual
-#  subfield record for enumerate
+
+# subfield record for enumerate
 class LeafEnumerate(object):
     def __init__(self):
+       # self.leaf = LEAF.LF_ENUMERATE # LF_ENUMERATE [TYPTYPE]
+       self.attr = 0 # (CV_fldattr_t) access
+       self.value = bytearray() # variable length value field
+       self.name = None
 
-    # internal ushort leaf;      // LF_ENUMERATE [TYPTYPE] # (CV_fldattr_t) access # variable length value field
-#  type record for nested (scoped) type definition
+
+# type record for nested (scoped) type definition
 class LeafNestType(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_NESTTYPE # LF_NESTTYPE [TYPTYPE]
+        self.pad0 = 0 # internal padding, must be 0
+        self.index = 0 # (type index) index of nested type definition
+        self.name = None # length prefixed type name
 
-    # internal ushort leaf;      // LF_NESTTYPE [TYPTYPE] # internal padding, must be 0 # (type index) index of nested type definition # length prefixed type name
-#  type record for nested (scoped) type definition, with attributes
-#  new records for vC v5.0, no need to have 16-bit ti versions.
+
+# type record for nested (scoped) type definition, with attributes
+# new records for vC v5.0, no need to have 16-bit ti versions.
 class LeafNestTypeEx(object):
     def __init__(self):
+       # self.leaf = LEAF.LF_NESTTYPEEX # LF_NESTTYPEEX [TYPTYPE]
+       self.attr = 0 # (CV_fldattr_t) member access
+       self.index = 0# (type index) index of nested type definition
+       self.name = None # length prefixed type name
 
-    # internal ushort leaf;      // LF_NESTTYPEEX [TYPTYPE] # (CV_fldattr_t) member access # (type index) index of nested type definition # length prefixed type name
-#  type record for modifications to members
+
+# type record for modifications to members
 class LeafMemberModify(object):
     def __init__(self):
+        # self.leaf = LEAF.LF_MEMBERMODIFY # LF_MEMBERMODIFY [TYPTYPE]
+        self.attr = 0 # (CV_fldattr_t) the new attributes
+        self.index = 0 # (type index) index of base class type definition
+        self.name = None # length prefixed member name
 
-    # internal ushort leaf;      // LF_MEMBERMODIFY [TYPTYPE] # (CV_fldattr_t) the new attributes # (type index) index of base class type definition # length prefixed member name
-#  type record for pad leaf
+
+# type record for pad leaf
 class LeafPad(object):
     def __init__(self):
+        self.leaf = 0
+
 
 #  Symbol definitions
 class SYM(object):
-    def __init__(self):
-        self._S_END = 0x0006 # Block, procedure, "with" or thunk end
-        self._S_OEM = 0x0404 # OEM defined symbol
-        self._S_REGISTER_ST = 0x1001 # Register variable
-        self._S_CONSTANT_ST = 0x1002 # constant symbol
-        self._S_UDT_ST = 0x1003 # User defined type
-        self._S_COBOLUDT_ST = 0x1004 # special UDT for cobol that does not symbol pack
-        self._S_MANYREG_ST = 0x1005 # multiple register variable
-        self._S_BPREL32_ST = 0x1006 # BP-relative
-        self._S_LDATA32_ST = 0x1007 # Module-local symbol
-        self._S_GDATA32_ST = 0x1008 # Global data symbol
-        self._S_PUB32_ST = 0x1009 # a internal symbol (CV internal reserved)
-        self._S_LPROC32_ST = 0x100a # Local procedure start
-        self._S_GPROC32_ST = 0x100b # Global procedure start
-        self._S_VFTABLE32 = 0x100c # address of virtual function table
-        self._S_REGREL32_ST = 0x100d # register relative address
-        self._S_LTHREAD32_ST = 0x100e # local thread storage
-        self._S_GTHREAD32_ST = 0x100f # global thread storage
-        self._S_LPROCMIPS_ST = 0x1010 # Local procedure start
-        self._S_GPROCMIPS_ST = 0x1011 # Global procedure start
-        self._S_FRAMEPROC =         # new symbol records for edit and continue information
-0x1012 # extra frame and proc information
-        self._S_COMPILE2_ST = 0x1013 # extended compile flags and info
-        self._S_MANYREG2_ST =       # new symbols necessary for 16-bit enumerates of IA64 registers
-        # and IA64 specific symbols
-0x1014 # multiple register variable
-        self._S_LPROCIA64_ST = 0x1015 # Local procedure start (IA64)
-        self._S_GPROCIA64_ST = 0x1016 # Global procedure start (IA64)
-        self._S_LOCALSLOT_ST =      # Local symbols for IL
-0x1017 # local IL sym with field for local slot index
-        self._S_PARAMSLOT_ST = 0x1018 # local IL sym with field for parameter slot index
-        self._S_ANNOTATION = 0x1019 # Annotation string literals
-        self._S_GMANPROC_ST =       # symbols to support managed code debugging
-0x101a # Global proc
-        self._S_LMANPROC_ST = 0x101b # Local proc
-        self._S_RESERVED1 = 0x101c # reserved
-        self._S_RESERVED2 = 0x101d # reserved
-        self._S_RESERVED3 = 0x101e # reserved
-        self._S_RESERVED4 = 0x101f # reserved
-        self._S_LMANDATA_ST = 0x1020
-        self._S_GMANDATA_ST = 0x1021
-        self._S_MANFRAMEREL_ST = 0x1022
-        self._S_MANREGISTER_ST = 0x1023
-        self._S_MANSLOT_ST = 0x1024
-        self._S_MANMANYREG_ST = 0x1025
-        self._S_MANREGREL_ST = 0x1026
-        self._S_MANMANYREG2_ST = 0x1027
-        self._S_MANTYPREF = 0x1028 # Index for type referenced by name from metadata
-        self._S_UNAMESPACE_ST = 0x1029 # Using namespace
-        self._S_ST_MAX =        # Symbols w/ SZ name fields. All name fields contain utf8 encoded strings.
-0x1100 # starting point for SZ name symbols
-        self._S_OBJNAME = 0x1101 # path to object file name
-        self._S_THUNK32 = 0x1102 # Thunk Start
-        self._S_BLOCK32 = 0x1103 # block start
-        self._S_WITH32 = 0x1104 # with start
-        self._S_LABEL32 = 0x1105 # code label
-        self._S_REGISTER = 0x1106 # Register variable
-        self._S_CONSTANT = 0x1107 # constant symbol
-        self._S_UDT = 0x1108 # User defined type
-        self._S_COBOLUDT = 0x1109 # special UDT for cobol that does not symbol pack
-        self._S_MANYREG = 0x110a # multiple register variable
-        self._S_BPREL32 = 0x110b # BP-relative
-        self._S_LDATA32 = 0x110c # Module-local symbol
-        self._S_GDATA32 = 0x110d # Global data symbol
-        self._S_PUB32 = 0x110e # a internal symbol (CV internal reserved)
-        self._S_LPROC32 = 0x110f # Local procedure start
-        self._S_GPROC32 = 0x1110 # Global procedure start
-        self._S_REGREL32 = 0x1111 # register relative address
-        self._S_LTHREAD32 = 0x1112 # local thread storage
-        self._S_GTHREAD32 = 0x1113 # global thread storage
-        self._S_LPROCMIPS = 0x1114 # Local procedure start
-        self._S_GPROCMIPS = 0x1115 # Global procedure start
-        self._S_COMPILE2 = 0x1116 # extended compile flags and info
-        self._S_MANYREG2 = 0x1117 # multiple register variable
-        self._S_LPROCIA64 = 0x1118 # Local procedure start (IA64)
-        self._S_GPROCIA64 = 0x1119 # Global procedure start (IA64)
-        self._S_LOCALSLOT = 0x111a # local IL sym with field for local slot index
-        self._S_SLOT = self._S_LOCALSLOT # alias for LOCALSLOT
-        self._S_PARAMSLOT = 0x111b # local IL sym with field for parameter slot index
-        self._S_LMANDATA =      # symbols to support managed code debugging
-0x111c
-        self._S_GMANDATA = 0x111d
-        self._S_MANFRAMEREL = 0x111e
-        self._S_MANREGISTER = 0x111f
-        self._S_MANSLOT = 0x1120
-        self._S_MANMANYREG = 0x1121
-        self._S_MANREGREL = 0x1122
-        self._S_MANMANYREG2 = 0x1123
-        self._S_UNAMESPACE = 0x1124 # Using namespace
-        self._S_PROCREF =       # ref symbols with name fields
-0x1125 # Reference to a procedure
-        self._S_DATAREF = 0x1126 # Reference to data
-        self._S_LPROCREF = 0x1127 # Local Reference to a procedure
-        self._S_ANNOTATIONREF = 0x1128 # Reference to an S_ANNOTATION symbol
-        self._S_TOKENREF = 0x1129 # Reference to one of the many MANPROCSYM's
-        self._S_GMANPROC =      # continuation of managed symbols
-0x112a # Global proc
-        self._S_LMANPROC = 0x112b # Local proc
-        self._S_TRAMPOLINE =        # short, light-weight thunks
-0x112c # trampoline thunks
-        self._S_MANCONSTANT = 0x112d # constants with metadata type info
-        self._S_ATTR_FRAMEREL =         # native attributed local/parms
-0x112e # relative to virtual frame ptr
-        self._S_ATTR_REGISTER = 0x112f # stored in a register
-        self._S_ATTR_REGREL = 0x1130 # relative to register (alternate frame ptr)
-        self._S_ATTR_MANYREG = 0x1131 # stored in >1 register
-        self._S_SEPCODE =       # Separated code (from the compiler) support
-0x1132
-        self._S_LOCAL = 0x1133 # defines a local symbol in optimized code
-        self._S_DEFRANGE = 0x1134 # defines a single range of addresses in which symbol can be evaluated
-        self._S_DEFRANGE2 = 0x1135 # defines ranges of addresses in which symbol can be evaluated
-        self._S_SECTION = 0x1136 # A COFF section in a PE executable
-        self._S_COFFGROUP = 0x1137 # A COFF group
-        self._S_EXPORT = 0x1138 # A export
-        self._S_CALLSITEINFO = 0x1139 # Indirect call site information
-        self._S_FRAMECOOKIE = 0x113a # Security cookie information
-        self._S_DISCARDED = 0x113b # Discarded by LINK /OPT:REF (experimental, see richards) # one greater than last
-        self._S_RECTYPE_LAST = self._S_RECTYPE_MAX - 1
+    S_END = 0x0006 # Block, procedure, "with" or thunk end
+    S_OEM = 0x0404 # OEM defined symbol
+    S_REGISTER_ST = 0x1001 # Register variable
+    S_CONSTANT_ST = 0x1002 # constant symbol
+    S_UDT_ST = 0x1003 # User defined type
+    S_COBOLUDT_ST = 0x1004 # special UDT for cobol that does not symbol pack
+    S_MANYREG_ST = 0x1005 # multiple register variable
+    S_BPREL32_ST = 0x1006 # BP-relative
+    S_LDATA32_ST = 0x1007 # Module-local symbol
+    S_GDATA32_ST = 0x1008 # Global data symbol
+    S_PUB32_ST = 0x1009 # a internal symbol (CV internal reserved)
+    S_LPROC32_ST = 0x100a # Local procedure start
+    S_GPROC32_ST = 0x100b # Global procedure start
+    S_VFTABLE32 = 0x100c # address of virtual function table
+    S_REGREL32_ST = 0x100d # register relative address
+    S_LTHREAD32_ST = 0x100e # local thread storage
+    S_GTHREAD32_ST = 0x100f # global thread storage
+    S_LPROCMIPS_ST = 0x1010 # Local procedure start
+    S_GPROCMIPS_ST = 0x1011 # Global procedure start
+    
+    # new symbol records for edit and continue information
+    S_FRAMEPROC = 0x1012 # extra frame and proc information
+    S_COMPILE2_ST = 0x1013 # extended compile flags and info
+        
+    # new symbols necessary for 16-bit enumerates of IA64 registers
+    # and IA64 specific symbols
+    S_MANYREG2_ST = 0x1014 # multiple register variable
+    S_LPROCIA64_ST = 0x1015 # Local procedure start (IA64)
+    S_GPROCIA64_ST = 0x1016 # Global procedure start (IA64)
 
-#  enum describing compile flag ambient data model
+    # Local symbols for IL
+    S_LOCALSLOT_ST = 0x1017 # local IL sym with field for local slot index
+    S_PARAMSLOT_ST = 0x1018 # local IL sym with field for parameter slot index
+    S_ANNOTATION = 0x1019 # Annotation string literals
+
+    # symbols to support managed code debugging
+    S_GMANPROC_ST = 0x101a # Global proc
+    S_LMANPROC_ST = 0x101b # Local proc
+    S_RESERVED1 = 0x101c # reserved
+    S_RESERVED2 = 0x101d # reserved
+    S_RESERVED3 = 0x101e # reserved
+    S_RESERVED4 = 0x101f # reserved
+    S_LMANDATA_ST = 0x1020
+    S_GMANDATA_ST = 0x1021
+    S_MANFRAMEREL_ST = 0x1022
+    S_MANREGISTER_ST = 0x1023
+    S_MANSLOT_ST = 0x1024
+    S_MANMANYREG_ST = 0x1025
+    S_MANREGREL_ST = 0x1026
+    S_MANMANYREG2_ST = 0x1027
+    S_MANTYPREF = 0x1028 # Index for type referenced by name from metadata
+    S_UNAMESPACE_ST = 0x1029 # Using namespace
+    
+    # Symbols w/ SZ name fields. All name fields contain utf8 encoded strings.
+    S_ST_MAX = 0x1100 # starting point for SZ name symbols
+    S_OBJNAME = 0x1101 # path to object file name
+    S_THUNK32 = 0x1102 # Thunk Start
+    S_BLOCK32 = 0x1103 # block start
+    S_WITH32 = 0x1104 # with start
+    S_LABEL32 = 0x1105 # code label
+    S_REGISTER = 0x1106 # Register variable
+    S_CONSTANT = 0x1107 # constant symbol
+    S_UDT = 0x1108 # User defined type
+    S_COBOLUDT = 0x1109 # special UDT for cobol that does not symbol pack
+    S_MANYREG = 0x110a # multiple register variable
+    S_BPREL32 = 0x110b # BP-relative
+    S_LDATA32 = 0x110c # Module-local symbol
+    S_GDATA32 = 0x110d # Global data symbol
+    S_PUB32 = 0x110e # a internal symbol (CV internal reserved)
+    S_LPROC32 = 0x110f # Local procedure start
+    S_GPROC32 = 0x1110 # Global procedure start
+    S_REGREL32 = 0x1111 # register relative address
+    S_LTHREAD32 = 0x1112 # local thread storage
+    S_GTHREAD32 = 0x1113 # global thread storage
+    S_LPROCMIPS = 0x1114 # Local procedure start
+    S_GPROCMIPS = 0x1115 # Global procedure start
+    S_COMPILE2 = 0x1116 # extended compile flags and info
+    S_MANYREG2 = 0x1117 # multiple register variable
+    S_LPROCIA64 = 0x1118 # Local procedure start (IA64)
+    S_GPROCIA64 = 0x1119 # Global procedure start (IA64)
+    S_LOCALSLOT = 0x111a # local IL sym with field for local slot index
+    S_SLOT = self._S_LOCALSLOT # alias for LOCALSLOT
+    S_PARAMSLOT = 0x111b # local IL sym with field for parameter slot index
+    
+    # symbols to support managed code debugging
+    S_LMANDATA = 0x111c
+    S_GMANDATA = 0x111d
+    S_MANFRAMEREL = 0x111e
+    S_MANREGISTER = 0x111f
+    S_MANSLOT = 0x1120
+    S_MANMANYREG = 0x1121
+    S_MANREGREL = 0x1122
+    S_MANMANYREG2 = 0x1123
+    S_UNAMESPACE = 0x1124 # Using namespace
+    
+    # ref symbols with name fields
+    S_PROCREF = 0x1125 # Reference to a procedure
+    S_DATAREF = 0x1126 # Reference to data
+    S_LPROCREF = 0x1127 # Local Reference to a procedure
+    S_ANNOTATIONREF = 0x1128 # Reference to an S_ANNOTATION symbol
+    S_TOKENREF = 0x1129 # Reference to one of the many MANPROCSYM's
+    
+    # continuation of managed symbols
+    S_GMANPROC = 0x112a # Global proc
+    S_LMANPROC = 0x112b # Local proc
+    
+    # short, light-weight thunks
+    S_TRAMPOLINE = 0x112c # trampoline thunks
+    S_MANCONSTANT = 0x112d # constants with metadata type info
+    
+    # native attributed local/parms
+    S_ATTR_FRAMEREL = 0x112e # relative to virtual frame ptr
+    S_ATTR_REGISTER = 0x112f # stored in a register
+    S_ATTR_REGREL = 0x1130 # relative to register (alternate frame ptr)
+    S_ATTR_MANYREG = 0x1131 # stored in >1 register
+    
+    # Separated code (from the compiler) support
+    S_SEPCODE = 0x1132
+    S_LOCAL = 0x1133 # defines a local symbol in optimized code
+    S_DEFRANGE = 0x1134 # defines a single range of addresses in which symbol can be evaluated
+    S_DEFRANGE2 = 0x1135 # defines ranges of addresses in which symbol can be evaluated
+    S_SECTION = 0x1136 # A COFF section in a PE executable
+    S_COFFGROUP = 0x1137 # A COFF group
+    S_EXPORT = 0x1138 # A export
+    S_CALLSITEINFO = 0x1139 # Indirect call site information
+    S_FRAMECOOKIE = 0x113a # Security cookie information
+    S_DISCARDED = 0x113b # Discarded by LINK /OPT:REF (experimental, see richards) # one greater than last
+    S_RECTYPE_LAST = SYM.S_RECTYPE_MAX - 1
+
+
+# enum describing compile flag ambient data model
 class CV_CFL_DATA(object):
-    def __init__(self):
-        self._CV_CFL_DNEAR = 0x00
-        self._CV_CFL_DFAR = 0x01
-        self._CV_CFL_DHUGE = 0x02
+    CV_CFL_DNEAR = 0x00
+    CV_CFL_DFAR = 0x01
+    CV_CFL_DHUGE = 0x02
 
-#  enum describing compile flag ambiant code model
+
+# enum describing compile flag ambiant code model
 class CV_CFL_CODE(object):
-    def __init__(self):
-        self._CV_CFL_CNEAR = 0x00
-        self._CV_CFL_CFAR = 0x01
-        self._CV_CFL_CHUGE = 0x02
+    CV_CFL_CNEAR = 0x00
+    CV_CFL_CFAR = 0x01
+    CV_CFL_CHUGE = 0x02
 
-#  enum describing compile flag target floating point package
+
+# enum describing compile flag target floating point package
 class CV_CFL_FPKG(object):
-    def __init__(self):
-        self._CV_CFL_NDP = 0x00
-        self._CV_CFL_EMU = 0x01
-        self._CV_CFL_ALT = 0x02
+    CV_CFL_NDP = 0x00
+    CV_CFL_EMU = 0x01
+    CV_CFL_ALT = 0x02
+
 
 class CV_PROCFLAGS(Byte):
-    def __init__(self):
-        self._CV_PFLAG_NOFPO =      # enum describing function return method
-0x01 # frame pointer present
-        self._CV_PFLAG_INT = 0x02 # interrupt return
-        self._CV_PFLAG_FAR = 0x04 # far return
-        self._CV_PFLAG_NEVER = 0x08 # function does not return
-        self._CV_PFLAG_NOTREACHED = 0x10 # label isn't fallen into
-        self._CV_PFLAG_CUST_CALL = 0x20 # custom calling convention
-        self._CV_PFLAG_NOINLINE = 0x40 # function marked as noinline
-        self._CV_PFLAG_OPTDBGINFO = 0x80
- # function has debug information for optimized code
+    # enum describing function return method
+    CV_PFLAG_NOFPO = 0x01 # frame pointer present
+    CV_PFLAG_INT = 0x02 # interrupt return
+    CV_PFLAG_FAR = 0x04 # far return
+    CV_PFLAG_NEVER = 0x08 # function does not return
+    CV_PFLAG_NOTREACHED = 0x10 # label isn't fallen into
+    CV_PFLAG_CUST_CALL = 0x20 # custom calling convention
+    CV_PFLAG_NOINLINE = 0x40 # function marked as noinline
+    CV_PFLAG_OPTDBGINFO = 0x80 # function has debug information for optimized code
+
+
 # Extended proc flags
-#
 class CV_EXPROCFLAGS(object):
     def __init__(self):
- # (CV_PROCFLAGS)
+        self.flags = 0 # (CV_PROCFLAGS)
+        self.reserved = 0 # must be zero
+
+
+# local variable flags
 class CV_LVARFLAGS(UInt16):
-    def __init__(self): # must be zero
-        self._fIsParam =        # local variable flags
-0x0001 # variable is a parameter
-        self._fAddrTaken = 0x0002 # address is taken
-        self._fCompGenx = 0x0004 # variable is compiler generated
-        self._fIsAggregate = 0x0008 # the symbol is splitted in temporaries,
-        self._fIsAggregated =       # which are treated by compiler as
-        # independent entities
-0x0010 # Counterpart of fIsAggregate - tells
-        self._fIsAliased =      # that it is a part of a fIsAggregate symbol
-0x0020 # variable has multiple simultaneous lifetimes
-        self._fIsAlias = 0x0040
- # represents one of the multiple simultaneous lifetimes
+    fIsParam = 0x0001 # variable is a parameter
+    fAddrTaken = 0x0002 # address is taken
+    fCompGenx = 0x0004 # variable is compiler generated
+    fIsAggregate = 0x0008 # the symbol is splitted in temporaries,
+                          # which are treated by compiler as
+                          # independent entities
+    fIsAggregated = 0x0010 # Counterpart of fIsAggregate - tells
+                           # that it is a part of a fIsAggregate symbol
+    fIsAliased = 0x0020 # variable has multiple simultaneous lifetimes
+    fIsAlias = 0x0040 # represents one of the multiple simultaneous lifetimes
+
+
 # represents an address range, used for optimized code debug info
 class CV_lvar_addr_range(object):
     def __init__(self):
- # defines a range of addresses
+        # defines a range of addresses
+        self.off_start = 0
+        self.isect_start = 0
+        self.cb_range = 0
+
+
 # enum describing function data return method
 class CV_GENERIC_STYLE(object):
-    def __init__(self):
-        self._CV_GENERIC_VOID = 0x00 # void return type
-        self._CV_GENERIC_REG = 0x01 # return data is in registers
-        self._CV_GENERIC_ICAN = 0x02 # indirect caller allocated near
-        self._CV_GENERIC_ICAF = 0x03 # indirect caller allocated far
-        self._CV_GENERIC_IRAN = 0x04 # indirect returnee allocated near
-        self._CV_GENERIC_IRAF = 0x05 # indirect returnee allocated far
-        self._CV_GENERIC_UNUSED = 0x06
+    CV_GENERIC_VOID = 0x00 # void return type
+    CV_GENERIC_REG = 0x01 # return data is in registers
+    CV_GENERIC_ICAN = 0x02 # indirect caller allocated near
+    CV_GENERIC_ICAF = 0x03 # indirect caller allocated far
+    CV_GENERIC_IRAN = 0x04 # indirect returnee allocated near
+    CV_GENERIC_IRAF = 0x05 # indirect returnee allocated far
+    CV_GENERIC_UNUSED = 0x06
 
-class CV_GENERIC_FLAG(UInt16):
-    def __init__(self): # first unused
-        self._cstyle = 0x0001 # true push varargs right to left
-        self._rsclean = 0x0002
 
-class CV_SEPCODEFLAGS(UInt32):
-    def __init__(self): # true if returnee stack cleanup
-        self._fIsLexicalScope =         # flag bitfields for separated code attributes
-0x00000001 # S_SEPCODE doubles as lexical scope
-        self._fReturnsToParent = 0x00000002
- # code frag returns to parent
+class CV_GENERIC_FLAG(object):
+    cstyle = 0x0001 # true push varargs right to left
+    rsclean = 0x0002 # true if returnee stack cleanup
+
+
+# flag bitfields for separated code attributes
+class CV_SEPCODEFLAGS(object):
+    fIsLexicalScope = 0x00000001 # S_SEPCODE doubles as lexical scope
+    fReturnsToParent = 0x00000002 # code frag returns to parent
+
+
 # Generic layout for symbol records
 class SYMTYPE(object):
     def __init__(self):
- # Record length # Record type
-# byte        data[CV_ZEROLEN];
-#  SYMTYPE *NextSym (SYMTYPE * pSym) {
-#  return (SYMTYPE *) ((char *)pSym + pSym->reclen + sizeof(ushort));
-#  }
-#  non-model specific symbol types
+        self.reclen = 0 # Record length
+        self.rectyp = 0 # Record type
+                        # byte        data[CV_ZEROLEN];
+                        #  SYMTYPE *NextSym (SYMTYPE * pSym) {
+                        #  return (SYMTYPE *) ((char *)pSym + pSym->reclen + sizeof(ushort));
+                        #  }
+
+
+# non-model specific symbol types
 class RegSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_REGISTER # S_REGISTER
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.reg = 0 # register enumerate
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_REGISTER # (type index) Type index or Metadata token # register enumerate # Length-prefixed name
+
 class AttrRegSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANREGISTER # S_MANREGISTER
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.off_cod = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.reg = 0 # register enumerate
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANREGISTER | S_ATTR_REGISTER # (type index) Type index or Metadata token # first code address where var is live # (CV_LVARFLAGS)local var flags # register enumerate # Length-prefixed name
+
 class ManyRegSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANYREG # S_MANYREG
+        self.typind = 0 # (type index) Type index or metadata token
+        self.count = 0 # count of number of registers
+        self.reg = [] # count register enumerates, most-sig first
+        self.name = None # length-prefixed name.
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANYREG # (type index) Type index or metadata token # count of number of registers # count register enumerates, most-sig first # length-prefixed name.
+
 class ManyRegSym2(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANYREG2 # S_MANYREG2
+        self.typind = 0 # (type index) Type index or metadata token
+        self.count = 0 # count of number of registers,
+        self.reg = [] # count register enumerates, most-sig first
+        self.name = None # length-prefixed name.
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANYREG2 # (type index) Type index or metadata token # count of number of registers, # count register enumerates, most-sig first # length-prefixed name.
+
 class AttrManyRegSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANMANYREG # S_MANMANYREG
+        self.typind = 0 # (type index) Type index or metadata token
+        self.off_cd = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.count = 0 # count of number of registers
+        self.reg = [] # count register enumerates, most-sig first
+        self.name = None # utf-8 encoded zero terminate name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANMANYREG # (type index) Type index or metadata token # first code address where var is live # (CV_LVARFLAGS)local var flags # count of number of registers # count register enumerates, most-sig first # utf-8 encoded zero terminate name
+
 class AttrManyRegSym2(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANMANYREG2 # S_MANMANYREG2
+        self.typind = 0 # (type index) Type index or metadata token
+        self.off_cd = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.count = 0 # count of number of registers
+        self.reg = [] # count register enumerates, most-sig first
+        self.name = None # utf-8 encoded zero terminate name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANMANYREG2 | S_ATTR_MANYREG # (type index) Type index or metadata token # first code address where var is live # (CV_LVARFLAGS)local var flags # count of number of registers # count register enumerates, most-sig first # utf-8 encoded zero terminate name
+
 class ConstSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_CONSTANT # S_CONSTANT or S_MANCONSTANT
+        self.typind = 0 # (type index) Type index (containing enum if enumerate) or metadata token
+        self.value = 0 # numeric leaf containing value
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_CONSTANT or S_MANCONSTANT # (type index) Type index (containing enum if enumerate) or metadata token # numeric leaf containing value # Length-prefixed name
+
 class UdtSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_UDT # S_UDT | S_COBOLUDT
+        self.typind = 0 # (type index) Type index
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_UDT | S_COBOLUDT # (type index) Type index # Length-prefixed name
+
 class ManyTypRef(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANTYPREF # S_MANTYPREF
+        self.typind = 0 # (type index) Type index
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANTYPREF # (type index) Type index
+
 class SearchSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_SSEARCH # S_SSEARCH
+        self.startsym = 0 # offset of the procedure
+        self.seg = 0 # segment of symbol
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_SSEARCH # offset of the procedure
-class CFLAGSYM_FLAGS(UInt16):
-    def __init__(self): # segment of symbol
-        self._pcode = 0x0001 # true if pcode present
-        self._floatprec = 0x0006 # floating precision
-        self._floatpkg = 0x0018 # float package
-        self._ambdata = 0x00e0 # ambient data model
-        self._ambcode = 0x0700 # ambient code model
-        self._mode32 = 0x0800
- # true if compiled 32 bit mode
+
+class CFLAGSYM_FLAGS(object):
+    pcode = 0x0001 # true if pcode present
+    floatprec = 0x0006 # floating precision
+    floatpkg = 0x0018 # float package
+    ambdata = 0x00e0 # ambient data model
+    ambcode = 0x0700 # ambient code model
+    mode32 = 0x0800  # true if compiled 32 bit mode
+
+
 class CFlagSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_COMPILE # S_COMPILE
+        self.machine = 0 # target processor
+        self.language = 0 # language index
+        self.flags = 0 # (CFLAGSYM_FLAGS)
+        self.ver = None # Length-prefixed compiler version string
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_COMPILE # target processor # language index # (CFLAGSYM_FLAGS)
+
 class COMPILESYM_FLAGS(UInt32):
-    def __init__(self): # Length-prefixed compiler version string
-        self._iLanguage = 0x000000ff # language index
-        self._fEC = 0x00000100 # compiled for E/C
-        self._fNoDbgInfo = 0x00000200 # not compiled with debug info
-        self._fLTCG = 0x00000400 # compiled with LTCG
-        self._fNoDataAlign = 0x00000800 # compiled with -Bzalign
-        self._fManagedPresent = 0x00001000 # managed code/data present
-        self._fSecurityChecks = 0x00002000 # compiled with /GS
-        self._fHotPatch = 0x00004000 # compiled with /hotpatch
-        self._fCVTCIL = 0x00008000 # converted with CVTCIL
-        self._fMSILModule = 0x00010000
- # MSIL netmodule
+    iLanguage = 0x000000ff # language index
+    fEC = 0x00000100 # compiled for E/C
+    fNoDbgInfo = 0x00000200 # not compiled with debug info
+    fLTCG = 0x00000400 # compiled with LTCG
+    fNoDataAlign = 0x00000800 # compiled with -Bzalign
+    fManagedPresent = 0x00001000 # managed code/data present
+    fSecurityChecks = 0x00002000 # compiled with /GS
+    fHotPatch = 0x00004000 # compiled with /hotpatch
+    fCVTCIL = 0x00008000 # converted with CVTCIL
+    fMSILModule = 0x00010000 # MSIL netmodule
+
+
 class CompileSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_COMPILE2 # S_COMPILE2
+        self.flags = 0 # (COMPILESYM_FLAGS)
+        self.machine = 0 # target processor
+        self.ver_fe_major = 0 # front end major version #
+        self.ver_fe_minor = 0 # front end minor version #
+        self.ver_fe_buld = 0 # front end build version #
+        self.ver_major = 0 # back end major version #
+        self.ver_minor = 0 # back end minor version #
+        self.ver_build = 0 # back end build version #
+        self.ver_st = None # Length-prefixed compiler version string, followed
+        self.ver_args = [] # block of zero terminated strings, ended by double-zero.
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_COMPILE2 # (COMPILESYM_FLAGS) # target processor # front end major version # # front end minor version # # front end build version # # back end major version # # back end minor version # # back end build version # # Length-prefixed compiler version string, followed # block of zero terminated strings, ended by double-zero.
+
 class ObjNameSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_OBJNAME # S_OBJNAME
+        self.signature = 0 # signature
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_OBJNAME # signature # Length-prefixed name
+
 class EndArgSym(object):
-    pass
-# internal ushort reclen;    // Record length [SYMTYPE]
-# internal ushort rectyp;    // S_ENDARG
+    def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_ENDARG # S_ENDARG
+        pass
+
+
 class ReturnSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_RETURN # S_RETURN
+        self.flags = 0 # flags
+        self.style = 0 # CV_GENERIC_STYLE return style
+                       # followed by return method data
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_RETURN # flags # CV_GENERIC_STYLE return style
-# followed by return method data
+
 class EntryThisSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_ENTRYTHIS # S_ENTRYTHIS
+        self.thissym = 0 # symbol describing this pointer on entry
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_ENTRYTHIS # symbol describing this pointer on entry
+
 class BpRelSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_BPREL32 # S_BPREL32
+        self.off = 0 # BP-relative offset
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_BPREL32 # BP-relative offset # (type index) Type index or Metadata token # Length-prefixed name
+
 class FrameRelSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANFRAMEREL # S_MANFRAMEREL | S_ATTR_FRAMEREL
+        self.off = 0 # Frame relative offset
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.off_cod = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANFRAMEREL | S_ATTR_FRAMEREL # Frame relative offset # (type index) Type index or Metadata token # first code address where var is live # (CV_LVARFLAGS)local var flags # Length-prefixed name
+
 class SlotSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_LOCALSLOT # S_LOCALSLOT or S_PARAMSLOT
+        self.index = 0 # slot index
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_LOCALSLOT or S_PARAMSLOT # slot index # (type index) Type index or Metadata token # Length-prefixed name
+
 class AttrSlotSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANSLOT # S_MANSLOT
+        self.index = 0 # slot index
+        self.typind = 0 # (type index) Type index or Metadata token
+        self.off_cod = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANSLOT # slot index # (type index) Type index or Metadata token # first code address where var is live # (CV_LVARFLAGS)local var flags # Length-prefixed name
+
 class AnnotationSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_ANNOTATION # S_ANNOTATION
+        self.off = 0
+        self.seg = 0
+        self.csz = 0 # Count of zero terminated annotation strings
+        self.rgsz = [] # Sequence of zero terminated annotation strings
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_ANNOTATION # Count of zero terminated annotation strings # Sequence of zero terminated annotation strings
+
 class DatasSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_LDATA32 # S_LDATA32, S_GDATA32 or S_PUB32, S_LMANDATA, S_GMANDATA
+        self.typind = 0 # (type index) Type index, or Metadata token if a managed symbol
+        self.off = 0
+        self.seg = 0
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_LDATA32, S_GDATA32 or S_PUB32, S_LMANDATA, S_GMANDATA # (type index) Type index, or Metadata token if a managed symbol
-class CV_PUBSYMFLAGS(UInt32):
-    def __init__(self): # Length-prefixed name
-        self._fNone = 0
-        self._fCode = 0x00000001 # set if internal symbol refers to a code address
-        self._fFunction = 0x00000002 # set if internal symbol is a function
-        self._fManaged = 0x00000004 # set if managed code (native or IL)
-        self._fMSIL = 0x00000008
- # set if managed IL code
+
+class CV_PUBSYMFLAGS(object):
+    fNone = 0
+    fCode = 0x00000001 # set if internal symbol refers to a code address
+    fFunction = 0x00000002 # set if internal symbol is a function
+    fManaged = 0x00000004 # set if managed code (native or IL)
+    fMSIL = 0x00000008 # set if managed IL code
+
+
 class PubSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_PUB32 # S_PUB32
+        self.flags = 0 # (CV_PUBSYMFLAGS)
+        self.off = 0
+        self.seg = 0
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_PUB32 # (CV_PUBSYMFLAGS) # Length-prefixed name
+
 class ProcSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_GPROC32 # S_GPROC32 or S_LPROC32
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.length = 0 # Proc length
+        self.dbg_start = 0 # Debug start offset
+        self.dbg_end = 0 # Debug end offset
+        self.typind = 0 # (type index) Type index
+        self.off = 0
+        self.sef = 0
+        self.flags = 0 # (CV_PROCFLAGS) Proc flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_GPROC32 or S_LPROC32 # pointer to the parent # pointer to this blocks end # pointer to next symbol # Proc length # Debug start offset # Debug end offset # (type index) Type index # (CV_PROCFLAGS) Proc flags # Length-prefixed name
+
 class ManProcSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_GMANPROC # S_GMANPROC, S_LMANPROC, S_GMANPROCIA64 or S_LMANPROCIA64
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.length = 0 # Proc length
+        self.dbg_start = 0 # Debug start offset
+        self.dbg_end = 0 # Debug end offset
+        self.token = 0 # COM+ metadata token for method
+        self.off = 0 
+        self.seg = 0 
+        self.flags = 0 # (CV_PROCFLAGS) Proc flags
+        self.ret_reg = 0 # Register return value is in (may not be used for all archs)
+        self.name = None # optional name field
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_GMANPROC, S_LMANPROC, S_GMANPROCIA64 or S_LMANPROCIA64 # pointer to the parent # pointer to this blocks end # pointer to next symbol # Proc length # Debug start offset # Debug end offset # COM+ metadata token for method # (CV_PROCFLAGS) Proc flags # Register return value is in (may not be used for all archs) # optional name field
+
 class ManProcSymMips(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_GMANPROCMIPS # S_GMANPROCMIPS or S_LMANPROCMIPS
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.length = 0 # Proc length
+        self.dbg_start = 0 # Debug start offset
+        self.dbg_end = 0 # Debug end offset
+        self.reg_save = 0 # int register save mask
+        self.fp_save = 0 # fp register save mask
+        self.int_off = 0 # int register save offset
+        self.fp_off = 0 # fp register save offset
+        self.token = 0 # COM+ token type
+        self.off = 0
+        self.seg = 0
+        self.ret_reg = 0 # Register return value is in
+        self.frame_reg = 0 # Frame pointer register
+        self.name = None # optional name field
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_GMANPROCMIPS or S_LMANPROCMIPS # pointer to the parent # pointer to this blocks end # pointer to next symbol # Proc length # Debug start offset # Debug end offset # int register save mask # fp register save mask # int register save offset # fp register save offset # COM+ token type # Register return value is in # Frame pointer register # optional name field
+
 class ThunkSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_THUNK32 # S_THUNK32
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.off = 0
+        self.seg = 0
+        self.length = 0 # length of thunk
+        self.ord = 0 # THUNK_ORDINAL specifying type of thunk
+        self.name = None # Length-prefixed name
+        self.variant = bytearray() # variant portion of thunk
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_THUNK32 # pointer to the parent # pointer to this blocks end # pointer to next symbol # length of thunk # THUNK_ORDINAL specifying type of thunk # Length-prefixed name # variant portion of thunk
+
 class TRAMP(object):
-    def __init__(self):
- # Trampoline subtype # incremental thunks # Branch island thunks
+    # Trampoline subtype
+    tramp_incremental = 0 # incremental thunks
+    tramp_branch_island = 1 # Branch island thunks
+
+
 class TrampolineSym(object):
     def __init__(self):
- # Trampoline thunk symbol
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_TRAMPOLINE # trampoline sym subtype # size of the thunk # offset of the thunk # offset of the target of the thunk # section index of the thunk # section index of the target of the thunk
+        # Trampoline thunk symbol
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_TRAMPOLINE # S_TRAMPOLINE
+        self.tramp_type = 0 # trampoline sym subtype
+        self.cb_thunk = 0 # size of the thunk
+        self.off_thunk = 0 # offset of the thunk
+        self.off_target = 0 # offset of the target of the thunk
+        self.sect_thunk = 0 # section index of the thunk
+        self.srct_target = 0 # section index of the target of the thunk
+
+
 class LabelSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_LABEL32 # S_LABEL32
+        self.off = 0
+        self.seg = 0
+        self.flags = 0 # (CV_PROCFLAGS) flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_LABEL32 # (CV_PROCFLAGS) flags # Length-prefixed name
+
 class BlockSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_BLOCK32 # S_BLOCK32
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.length = 0 # Block length
+        self.off = 0 # Offset in code segment
+        self.seg = 0 # segment of label
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_BLOCK32 # pointer to the parent # pointer to this blocks end # Block length # Offset in code segment # segment of label # Length-prefixed name
+
 class WithSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_WITH32 # S_WITH32
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.length = 0 # Block length
+        self.off = 0 # Offset in code segment
+        self.seg = 0 # segment of label
+        self.expr = None # Length-prefixed expression string
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_WITH32 # pointer to the parent # pointer to this blocks end # Block length # Offset in code segment # segment of label # Length-prefixed expression string
+
 class VpathSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_VFTABLE32 # S_VFTABLE32
+        self.root = 0 # (type index) type index of the root of path
+        self.path = 0 # (type index) type index of the path record
+        self.off = 0 # offset of virtual function table
+        self.seg = 0 # segment of virtual function table
 
-    # internal ushort reclen;    // record length
-    # internal ushort rectyp;    // S_VFTABLE32 # (type index) type index of the root of path # (type index) type index of the path record # offset of virtual function table # segment of virtual function table
+
 class RegRel32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_REGREL32 # S_REGREL32
+        self.off = 0 # offset of symbol
+        self.typind = 0 # (type index) Type index or metadata token
+        self.reg = 0 # register index for symbol
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_REGREL32 # offset of symbol # (type index) Type index or metadata token # register index for symbol # Length-prefixed name
+
 class AttrRegRel(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_MANREGREL # S_MANREGREL
+        self.off = 0 # offset of symbol
+        self.typind = 0 # (type index) Type index or metadata token
+        self.ref = 0 # register index for symbol
+        self.off_cod = 0 # first code address where var is live
+        self.seg_cod = 0
+        self.flags = 0 # (CV_LVARFLAGS)local var flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_MANREGREL | S_ATTR_REGREL # offset of symbol # (type index) Type index or metadata token # register index for symbol # first code address where var is live # (CV_LVARFLAGS)local var flags # Length-prefixed name
+
 class ThreadSym32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_LTHREAD32 # S_LTHREAD32 | S_GTHREAD32
+        self.typind = 0 # (type index) type index
+        self.off = 0 # offset into thread storage
+        self.seg = 0 # segment of thread storage
+        self.name = None # length prefixed name
 
-    # internal ushort reclen;    // record length
-    # internal ushort rectyp;    // S_LTHREAD32 | S_GTHREAD32 # (type index) type index # offset into thread storage # segment of thread storage # length prefixed name
+
 class Slink32(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_SLINK32 # S_SLINK32
+        self.framesize = 0 # frame size of parent procedure
+        self.off = 0 # signed offset where the static link was saved relative to the value of reg
+        self.reg = 0
 
-    # internal ushort reclen;    // record length
-    # internal ushort rectyp;    // S_SLINK32 # frame size of parent procedure # signed offset where the static link was saved relative to the value of reg
+
 class ProcSymMips(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_GPROCMIPS # S_GPROCMIPS or S_LPROCMIPS
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.length = 0 # Proc length
+        self.dbg_start = 0 # Debug start offset
+        self.dbg_end = 0 # Debug end offset
+        self.reg_save = 0 # int register save mask
+        self.fp_save = 0 # fp register save mask
+        self.int_off = 0 # int register save offset
+        self.fp_off = 0 # fp register save offset
+        self.typind = 0 # (type index) Type index
+        self.off = 0 # Symbol offset
+        self.seg = 0 # Symbol segment
+        self.ret_reg = 0 # Register return value is in
+        self.frame_reg = 0 # Frame pointer register
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_GPROCMIPS or S_LPROCMIPS # pointer to the parent # pointer to this blocks end # pointer to next symbol # Proc length # Debug start offset # Debug end offset # int register save mask # fp register save mask # int register save offset # fp register save offset # (type index) Type index # Symbol offset # Symbol segment # Register return value is in # Frame pointer register # Length-prefixed name
+
 class ProcSymIa64(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_GPROCIA64 # S_GPROCIA64 or S_LPROCIA64
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this blocks end
+        self.next = 0 # pointer to next symbol
+        self.length = 0 # Proc length
+        self.dbg_start = 0 # Debug start offset
+        self.dbg_end = 0 # Debug end offset
+        self.typind = 0 # (type index) Type index
+        self.off = 0 # Symbol offset
+        self.seg = 0 # Symbol segment
+        self.ret_reg = 0 # Register return value is in
+        self.flags = 0 # (CV_PROCFLAGS) Proc flags
+        self.name = None # Length-prefixed name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_GPROCIA64 or S_LPROCIA64 # pointer to the parent # pointer to this blocks end # pointer to next symbol # Proc length # Debug start offset # Debug end offset # (type index) Type index # Symbol offset # Symbol segment # Register return value is in # (CV_PROCFLAGS) Proc flags # Length-prefixed name
+
 class RefSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_PROCREF_ST # S_PROCREF_ST, S_DATAREF_ST, or S_LPROCREF_ST
+        self.sum_num = 0 # SUC of the name
+        self.ib_sym = 0 # Offset of actual symbol in $$Symbols
+        self.imod = 0 # Module containing the actual symbol
+        self.us_fill = 0 # align this record
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_PROCREF_ST, S_DATAREF_ST, or S_LPROCREF_ST # SUC of the name # Offset of actual symbol in $$Symbols # Module containing the actual symbol # align this record
+
 class RefSym2(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_PROCREF # S_PROCREF, S_DATAREF, or S_LPROCREF
+        self.sum_name = 0 # SUC of the name
+        self.ib_sym = 0 # Offset of actual symbol in $$Symbols
+        self.imod = 0 # Module containing the actual symbol
+        self.name = None # hidden name made a first class member
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_PROCREF, S_DATAREF, or S_LPROCREF # SUC of the name # Offset of actual symbol in $$Symbols # Module containing the actual symbol # hidden name made a first class member
+
 class AlignSym(object):
-    pass
-# internal ushort reclen;    // Record length [SYMTYPE]
-# internal ushort rectyp;    // S_ALIGN
+    def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_ALIGN # S_ALIGN
+        pass
+
+
 class OemSymbol(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_OEM # S_OEM
+        self.id_oem = uuid.uuid() # an oem ID (GUID)
+        self.typind = 0 # (type index) Type index
+        self.rgl = [] # user data, force 4-byte alignment
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_OEM # an oem ID (GUID) # (type index) Type index
-class FRAMEPROCSYM_FLAGS(UInt32):
-    def __init__(self): # user data, force 4-byte alignment
-        self._fHasAlloca = 0x00000001 # function uses _alloca()
-        self._fHasSetJmp = 0x00000002 # function uses setjmp()
-        self._fHasLongJmp = 0x00000004 # function uses longjmp()
-        self._fHasInlAsm = 0x00000008 # function uses inline asm
-        self._fHasEH = 0x00000010 # function has EH states
-        self._fInlSpec = 0x00000020 # function was speced as inline
-        self._fHasSEH = 0x00000040 # function has SEH
-        self._fNaked = 0x00000080 # function is __declspec(naked)
-        self._fSecurityChecks = 0x00000100 # function has buffer security check introduced by /GS.
-        self._fAsyncEH = 0x00000200 # function compiled with /EHa
-        self._fGSNoStackOrdering = 0x00000400 # function has /GS buffer checks, but stack ordering couldn't be done
-        self._fWasInlined = 0x00000800
- # function was inlined within another function
+
+class FRAMEPROCSYM_FLAGS(object):
+    fHasAlloca = 0x00000001 # function uses _alloca()
+    fHasSetJmp = 0x00000002 # function uses setjmp()
+    fHasLongJmp = 0x00000004 # function uses longjmp()
+    fHasInlAsm = 0x00000008 # function uses inline asm
+    fHasEH = 0x00000010 # function has EH states
+    fInlSpec = 0x00000020 # function was speced as inline
+    fHasSEH = 0x00000040 # function has SEH
+    fNaked = 0x00000080 # function is __declspec(naked)
+    fSecurityChecks = 0x00000100 # function has buffer security check introduced by /GS.
+    fAsyncEH = 0x00000200 # function compiled with /EHa
+    fGSNoStackOrdering = 0x00000400 # function has /GS buffer checks, but stack ordering couldn't be done
+    fWasInlined = 0x00000800 # function was inlined within another function
+
+
 class FrameProcSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_FRAMEPROC # S_FRAMEPROC
+        self.cb_frame = 0 # count of bytes of total frame of procedure
+        self.cb_pad = 0 # count of bytes of padding in the frame
+        self.off_pad = 0 # offset (rel to frame) to where padding starts
+        self.cb_save_regs = 0 # count of bytes of callee save registers
+        self.off_ex_hdlr = 0 # offset of exception handler
+        self.sec_ex_hdlr = 0 # section id of exception handler
+        self.flags = 0 # (FRAMEPROCSYM_FLAGS)
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_FRAMEPROC # count of bytes of total frame of procedure # count of bytes of padding in the frame # offset (rel to frame) to where padding starts # count of bytes of callee save registers # offset of exception handler # section id of exception handler # (FRAMEPROCSYM_FLAGS)
+
 class UnamespaceSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_UNAMESPACE # S_UNAMESPACE
+        self.name = None # name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_UNAMESPACE # name
+
 class SepCodSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_SEPCODE # S_SEPCODE
+        self.parent = 0 # pointer to the parent
+        self.end = 0 # pointer to this block's end
+        self.length = 0 # count of bytes of this block
+        self.scf = 0 # (CV_SEPCODEFLAGS) flags
+        self.off = 0 # sec:off of the separated code
+        self.off_parent = 0 # secParent:offParent of the enclosing scope
+        self.sec = 0 #  (proc, block, or sepcode)
+        self.sec_parent = 0
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_SEPCODE # pointer to the parent # pointer to this block's end # count of bytes of this block # (CV_SEPCODEFLAGS) flags # sec:off of the separated code # secParent:offParent of the enclosing scope #  (proc, block, or sepcode)
+
 class LocalSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_LOCAL # S_LOCAL
+        self.id = 0 # id of the local
+        self.typid = 0 # (type index) type index
+        self.flags = 0 # (CV_LVARFLAGS) local var flags
+        self.id_parent = 0 # This is is parent variable - fIsAggregated or fIsAlias
+        self.off_parent = 0 # Offset in parent variable - fIsAggregated
+        self.expr = 0 # NI of expression that this temp holds
+        self.pad0 = 0 # pad, must be zero
+        self.pad1 = 0 # pad, must be zero
+        self.name = None # Name of this symbol.
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_LOCAL # id of the local # (type index) type index # (CV_LVARFLAGS) local var flags # This is is parent variable - fIsAggregated or fIsAlias # Offset in parent variable - fIsAggregated # NI of expression that this temp holds # pad, must be zero # pad, must be zero # Name of this symbol.
+
 class DefRangeSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_DEFRANGE # S_DEFRANGE
+        self.id = 0 # ID of the local symbol for which this formula holds
+        self.program = 0 # program to evaluate the value of the symbol
+        self.range = CV_lvar_addr_range() # Range of addresses where this program is valid
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_DEFRANGE # ID of the local symbol for which this formula holds # program to evaluate the value of the symbol # Range of addresses where this program is valid
+
 class DefRangeSym2(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_DEFRANGE2 # S_DEFRANGE2
+        self.id = 0 # ID of the local symbol for which this formula holds
+        self.program = 0 # program to evaluate the value of the symbol
+        self.count = 0 # count of CV_lvar_addr_range records following
+        self.range = [] # Range of addresses where this program is valid
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_DEFRANGE2 # ID of the local symbol for which this formula holds # program to evaluate the value of the symbol # count of CV_lvar_addr_range records following # Range of addresses where this program is valid
+
 class SectionSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_SECTION # S_SECTION
+        self.isec = 0 # Section number
+        self.align = 0 # Alignment of this section (power of 2)
+        self.b_reserved = 0 # Reserved.  Must be zero.
+        self.rva = 0
+        self.cb = 0
+        self.characteristics = 0
+        self.name = None # name
 
-    # internal ushort reclen     // Record length
-    # internal ushort rectyp;    // S_SECTION # Section number # Alignment of this section (power of 2) # Reserved.  Must be zero. # name
+
 class CoffGroupSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_COFFGROUP # S_COFFGROUP
+        self.cb = 0
+        self.characteristics = 0
+        self.off = 0 # Symbol offset
+        self.seg = 0 # Symbol segment
+        self.name = None # name
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_COFFGROUP # Symbol offset # Symbol segment
-class EXPORTSYM_FLAGS(UInt16):
-    def __init__(self): # name
-        self._fConstant = 0x0001 # CONSTANT
-        self._fData = 0x0002 # DATA
-        self._fPrivate = 0x0004 # PRIVATE
-        self._fNoName = 0x0008 # NONAME
-        self._fOrdinal = 0x0010 # Ordinal was explicitly assigned
-        self._fForwarder = 0x0020
+
+class EXPORTSYM_FLAGS(object):
+    fConstant = 0x0001 # CONSTANT
+    fData = 0x0002 # DATA
+    fPrivate = 0x0004 # PRIVATE
+    fNoName = 0x0008 # NONAME
+    fOrdinal = 0x0010 # Ordinal was explicitly assigned
+    fForwarder = 0x0020
+
+
  # This is a forwarder
 class ExportSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_EXPORT # S_EXPORT
+        self.ordinal = 0
+        self.flags = 0 # (EXPORTSYM_FLAGS)
+        self.name = None # name of
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_EXPORT # (EXPORTSYM_FLAGS) # name of
-#
+
 # Symbol for describing indirect calls when they are using
 # a function pointer cast on some other type or temporary.
 # Typical content will be an LF_POINTER to an LF_PROCEDURE
@@ -1580,100 +2149,150 @@ class ExportSym(object):
 #  pfn = &function2;
 #
 #  (*pfn)(arg list);
-#
+
 class CallsiteInfo(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_CALLSITEINFO # S_CALLSITEINFO
+        self.off = 0 # offset of call site
+        self.ect = 0 # section index of call site
+        self.pad0 = 0 # alignment padding field, must be zero
+        self.typind = 0 # (type index) type index describing function signature
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_CALLSITEINFO # offset of call site # section index of call site # alignment padding field, must be zero # (type index) type index describing function signature
+
 # Frame cookie information
 class CV_cookietype(object):
-    def __init__(self):
-        self._CV_COOKIETYPE_COPY = 0
+    CV_COOKIETYPE_COPY = 0
+    CV_COOKIETYPE_XOR_SP = 1
+    CV_COOKIETYPE_XOR_BP = 2
+    CV_COOKIETYPE_XOR_R13 = 3
+
 
 # Symbol for describing security cookie's position and type
 # (raw, xor'd with esp, xor'd with ebp).
 class FrameCookie(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_FRAMECOOKIE # S_FRAMECOOKIE
+        self.off = 0 # Frame relative offset
+        self.reg = 0 # Register index
+        self.cookietype = 0 # (CV_cookietype) Type of the cookie
+        self.flags = 0 # Flags describing this cookie
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_FRAMECOOKIE # Frame relative offset # Register index # (CV_cookietype) Type of the cookie # Flags describing this cookie
-class CV_DISCARDED(UInt32):
-    def __init__(self):
-        self._CV_DISCARDED_UNKNOWN = 0
-        self._CV_DISCARDED_NOT_SELECTED = 1
-        self._CV_DISCARDED_NOT_REFERENCED = 2
+
+class CV_DISCARDED(object):
+    CV_DISCARDED_UNKNOWN = 0
+    CV_DISCARDED_NOT_SELECTED = 1
+    CV_DISCARDED_NOT_REFERENCED = 2
+
 
 class DiscardedSym(object):
     def __init__(self):
+        # self.reclen = 0 # Record length [SYMTYPE]
+        # self.rectyp = SYM.S_DISCARDED # S_DISCARDED
+        self.iscarded = CV_DISCARDED() 
+        self.fileid = 0 # First FILEID if line number info present
+        self.linenum = 0 # First line number
+        self.data = bytearray() # Original record(s) with invalid indices
 
-    # internal ushort reclen;    // Record length [SYMTYPE]
-    # internal ushort rectyp;    // S_DISCARDED # First FILEID if line number info present # First line number # Original record(s) with invalid indices
 #
 # V7 line number data types
 #
-class DEBUG_S_SUBSECTION_TYPE(UInt32):
-    def __init__(self):
-        self._DEBUG_S_IGNORE = 0x80000000 # if this bit is set in a subsection type then ignore the subsection contents
-        self._DEBUG_S_SYMBOLS = 0xf1
-        self._DEBUG_S_LINES = 0xf2
-        self._DEBUG_S_STRINGTABLE = 0xf3
-        self._DEBUG_S_FILECHKSMS = 0xf4
-        self._DEBUG_S_FRAMEDATA = 0xf5
+class DEBUG_S_SUBSECTION_TYPE(object):
+    DEBUG_S_IGNORE = 0x80000000 # if this bit is set in a subsection type then ignore the subsection contents
+    DEBUG_S_SYMBOLS = 0xf1
+    DEBUG_S_LINES = 0xf2
+    DEBUG_S_STRINGTABLE = 0xf3
+    DEBUG_S_FILECHKSMS = 0xf4
+    DEBUG_S_FRAMEDATA = 0xf5
+
 
 #
 # Line flags (data present)
 #
 class CV_LINE_SUBSECTION_FLAGS(UInt16):
-    def __init__(self):
-        self._CV_LINES_HAVE_COLUMNS = 0x0001
+    CV_LINES_HAVE_COLUMNS = 0x0001
+
 
 class CV_LineSection(object):
     def __init__(self):
+        self.off = 0
+        self.sec = 0
+        self.flags = 0
+        self.cod = 0
+
 
 class CV_SourceFile(object):
     def __init__(self):
- # Index to file in checksum section. # Number of CV_Line records.
-class CV_Line_Flags(UInt32):
-    def __init__(self): # Size of CV_Line recods.
-        self._linenumStart = 0x00ffffff # line where statement/expression starts
-        self._deltaLineEnd = 0x7f000000 # delta to line where statement ends (optional)
-        self._fStatement = 0x80000000
- # true if a statement linenumber, else an expression line num
+        self.index = 0 # Index to file in checksum section.
+        self.count = 0 # Number of CV_Line records.
+        self.linsiz = 0 # Size of CV_Line recods.
+
+
+class CV_Line_Flags(object):
+    linenum_start = 0x00ffffff # line where statement/expression starts
+    delta_line_end = 0x7f000000 # delta to line where statement ends (optional)
+    f_statement = 0x80000000 # true if a statement linenumber, else an expression line num
+
+
 class CV_Line(object):
     def __init__(self):
- # Offset to start of code bytes for line number # (CV_Line_Flags)
+        self.offset = 0 # Offset to start of code bytes for line number
+        self.flags = 0 # (CV_Line_Flags)
+
+
 class CV_Column(object):
     def __init__(self):
+        self.off_column_start = 0
+        self.off_column_end = 0
+
 
 #  File information
 class CV_FILE_CHECKSUM_TYPE(Byte):
-    def __init__(self):
-        self._None = 0
-        self._MD5 = 1
+    None = 0
+    MD5 = 1
+
 
 class CV_FileCheckSum(object):
     def __init__(self):
- # Index of name in name table. # Hash length
-class FRAMEDATA_FLAGS(UInt32):
-    def __init__(self): # Hash type
-        self._fHasSEH = 0x00000001
-        self._fHasEH = 0x00000002
-        self._fIsFunctionStart = 0x00000004
+        self.name = 0 # Index of name in name table.
+        self.length = 0 # Hash length
+        self.type = 0 # Hash type
+
+
+class FRAMEDATA_FLAGS(object):
+    fHasSEH = 0x00000001
+    fHasEH = 0x00000002
+    fIsFunctionStart = 0x00000004
+
 
 class FrameData(object):
     def __init__(self):
- # (FRAMEDATA_FLAGS)
+        self.ul_rva_start = 0
+        self.cb_block = 0
+        self.cb_locals = 0
+        self.cb_params = 0
+        self.cb_stk_max = 0
+        self.frame_func = 0
+        self.cb_prolog = 0
+        self.cb_saved_regs = 0
+        self.flags = 0 # (FRAMEDATA_FLAGS)
+
+
 class XFixupData(object):
     def __init__(self):
+        self.w_type = 0
+        self.e_extra = 0
+        self.rva = 0
+        self.rva_target = 0
+
 
 class DEBUG_S_SUBSECTION(object):
-    def __init__(self):
-        self._SYMBOLS = 0xF1
-        self._LINES = 0xF2
-        self._STRINGTABLE = 0xF3
-        self._FILECHKSMS = 0xF4
-        self._FRAMEDATA = 0xF5
+    SYMBOLS = 0xF1
+    LINES = 0xF2
+    STRINGTABLE = 0xF3
+    FILECHKSMS = 0xF4
+    FRAMEDATA = 0xF5
 
 
 
