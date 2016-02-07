@@ -346,16 +346,16 @@ class PdbFile(object):
         # Skip the File Info substream; sstFileIndex
         end = bits.position + dh.filinf_size
         # http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
-        c_mod = bits.read_uint16()
-        c_ref = bits.read_uint16()
-        mod_start = bits.read_uint16(c_mod)
-        c_ref_cnt = bits.read_uint16(c_mod)
-        name_ref = bits.read_uint32(c_ref)
-        fnames = []
-        for i in range(0, c_ref):
-            fnames.append(bits.read_cstring())
-        print('module', len(modules), c_mod)
-        print('bits.positon', bits.position, 'end', end, 'c_ref', c_ref, 'len', len(fnames))
+        # c_mod = bits.read_uint16()
+        # c_ref = bits.read_uint16()
+        # mod_start = bits.read_uint16(c_mod)
+        # c_ref_cnt = bits.read_uint16(c_mod)
+        # name_ref = bits.read_uint32(c_ref)
+        # fnames = []
+        # for i in range(0, c_ref):
+        #     fnames.append(bits.read_cstring())
+        # print('module', len(modules), c_mod)
+        # print('bits.positon', bits.position, 'end', end, 'c_ref', c_ref, 'len', len(fnames))
 
         # files = []
         # for i in xrange(0, c_mod):
