@@ -33,7 +33,7 @@ class DbiModuleInfo(object):
         DbiSecCon(bits)                              # 4..31
         self.flags = bits.read_uint16()              # 32..33
         self.stream = bits.read_int16()              # 34..35
-        self.cb_Syms = bits.read_int32()             # 36..39
+        self.cb_syms = bits.read_int32()             # 36..39
         self.cb_old_lines = bits.read_int32()        # 40..43
         self.cb_lines = bits.read_int32()            # 44..57
         self.files = bits.read_int16()               # 48..49

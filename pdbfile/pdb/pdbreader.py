@@ -82,7 +82,7 @@ class PdbReader(object):
             bits.read_int32()          #  0..3  Version
             bits.read_int32()          #  4..7  Signature
             age = bits.read_int32()    #  8..11 Age
-            guid = bits.read_guid();   # 12..27 GUID
+            guid = bits.read_guid()    # 12..27 GUID
         return guid, age
 
     def get_function_from_token(self, method_token):

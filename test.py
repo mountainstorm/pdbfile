@@ -23,7 +23,7 @@
 
 from __future__ import unicode_literals, print_function
 import argparse
-from pdbfile.pdb.pdbreader import PdbReader
+from pdbfile.pdbfile import PDB
 import traceback
 import hashlib
 import json
@@ -35,10 +35,13 @@ import os
 def pdb_info(path):
     print(path.lower()[path.find('/')+1:])
     try:
-        guid, age = PdbReader.get_pdb_properties(path)
-        fn = os.path.basename(path).lower()
-        print('%s/%s%X/%s' % (fn, str(guid).replace('-', '').upper(), age, fn))
-        print(PdbReader(filename=path).functions)
+        # guid, age = PdbReader.get_pdb_properties(path)
+        # fn = os.path.basename(path).lower()
+        # print('%s/%s%X/%s' % (fn, str(guid).replace('-', '').upper(), age, fn))
+        # print(PdbReader(filename=path).functions)
+
+        print(PDB(path).symbol_id)
+
     except:
         print(traceback.format_exc())
     return {}

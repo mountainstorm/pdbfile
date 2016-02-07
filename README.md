@@ -5,6 +5,11 @@ A basic clone of the Microsoft clr [PDB file parser](https://github.com/Microsof
 
 I've tried to make it slightly more pythonic e.g. changing the naming scheme of members something python style, changing 'out' params into multiple returns
 
+References
+----------
+* http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
+* http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
+
 
 Testing
 -------

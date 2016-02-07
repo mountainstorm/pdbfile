@@ -317,7 +317,7 @@ class PdbFile(object):
                 func_list.append(funcs[i])
 
     @classmethod
-    def load_dbi_stream(cls, bits, read_strings):
+    def load_dbi_stream(cls, bits, read_strings, ext=False):
         dh = DbiHeader(bits)
         header = None
 
@@ -343,8 +343,29 @@ class PdbFile(object):
         # Skip the Section Map substream.
         bits.position += dh.secmap_size
 
-        # Skip the File Info substream.
-        bits.position += dh.filinf_size
+        # Skip the File Info substream; sstFileIndex
+        end = bits.position + dh.filinf_size
+        # http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
+        c_mod = bits.read_uint16()
+        c_ref = bits.read_uint16()
+        mod_start = bits.read_uint16(c_mod)
+        c_ref_cnt = bits.read_uint16(c_mod)
+        name_ref = bits.read_uint32(c_ref)
+        fnames = []
+        for i in range(0, c_ref):
+            fnames.append(bits.read_cstring())
+        print('module', len(modules), c_mod)
+        print('bits.positon', bits.position, 'end', end, 'c_ref', c_ref, 'len', len(fnames))
+
+        # files = []
+        # for i in xrange(0, c_mod):
+        #     these = []
+        #     for j in xrange(mod_start[i], mod_start[i]+c_ref_cnt[i]):
+        #         Name = CString("Name").parse(Names[NameRef[j]:])
+        #         files.append(Name)
+        #         these.append(Name)
+        #     modules.append(these)
+        bits.position = end
 
         # Skip the TSM substream.
         bits.position += dh.tsmap_size
@@ -357,6 +378,8 @@ class PdbFile(object):
         if dh.dbghdr_size > 0:
             header = DbiDbgHdr(bits)
         bits.position = end
+        if ext is True:
+            return modules, header, dh # this is useful as this age is often used
         return modules, header
 
     @classmethod
