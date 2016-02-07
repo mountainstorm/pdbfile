@@ -30,6 +30,14 @@ from pdb.pdbfile import PdbFile
 import os
 
 
+class PDBInvalidError(Exception):
+    pass
+
+
+class PDB2Error(Exception):
+    pass
+
+
 class NameStream(object):
     def __init__(self, reader, bits, directory):
         directory.streams[1].read(reader, bits)
@@ -59,6 +67,7 @@ class PDB(object):
         self.path = path
         self.filename = os.path.basename(path)
         self.pdb_stream = open(path, 'rb')
+        self.check_format()
         self.header = PdbFileHeader(self.pdb_stream, self.bits)
         self.reader = PdbStreamHelper(self.pdb_stream, self.header.page_size)
         self.directory = MsfDirectory(self.reader, self.header, self.bits)
@@ -90,6 +99,21 @@ class PDB(object):
 
     def __exit__(self, type, value, tb):
         self.close()
+
+    def check_format(self):
+        pdb7 = b'Microsoft C/C++ MSF 7.00\r\n\x1ADS\0\0\0'
+        magic = self.pdb_stream.read(len(pdb7))
+        self.pdb_stream.seek(0)
+        if magic != pdb7:
+            pdb2 = b'Microsoft C/C++ program database 2.00\r\n\032JG\0\0'
+            magic = self.pdb_stream.read(len(pdb2))
+            self.pdb_stream.seek(0)
+            if magic != pdb2:
+                raise PDBInvalidError('File not a PDB or contains an invalid header')
+            else:
+                raise PDB2Error('File is an unsupported PDB2 symbol file')
+
+
 
     
 
