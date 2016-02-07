@@ -45,7 +45,10 @@ class DbiStream(object):
         directory.streams[3].read(reader, bits)
         (self.modules,
          self.header,
-         self.dbghdr) = PdbFile.load_dbi_stream(bits, True, True)
+         self.dbghdr,
+         self.module_files) = PdbFile.load_dbi_stream(bits, True, True)
+        if len(self.module_files) != len(self.modules):
+            pass # no module_file info
 
 
 class PDB(object):

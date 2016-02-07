@@ -35,13 +35,8 @@ import os
 def pdb_info(path):
     print(path.lower()[path.find('/')+1:])
     try:
-        # guid, age = PdbReader.get_pdb_properties(path)
-        # fn = os.path.basename(path).lower()
-        # print('%s/%s%X/%s' % (fn, str(guid).replace('-', '').upper(), age, fn))
-        # print(PdbReader(filename=path).functions)
-
-        print(PDB(path).symbol_id)
-
+        pdb = PDB(path)
+        # XXX: create json from pdb
     except:
         print(traceback.format_exc())
     return {}

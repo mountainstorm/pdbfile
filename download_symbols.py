@@ -69,7 +69,6 @@ def decompress_symbol(local):
     if os.path.exists(local[:-1] + 'b'):
         retval = local[:-1] + 'b'
         os.unlink(local)
-        os.rename(local, local.lower())
     return retval
 
 

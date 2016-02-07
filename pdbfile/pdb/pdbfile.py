@@ -344,27 +344,28 @@ class PdbFile(object):
         bits.position += dh.secmap_size
 
         # Skip the File Info substream; sstFileIndex
-        end = bits.position + dh.filinf_size
         # http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
-        # c_mod = bits.read_uint16()
-        # c_ref = bits.read_uint16()
-        # mod_start = bits.read_uint16(c_mod)
-        # c_ref_cnt = bits.read_uint16(c_mod)
-        # name_ref = bits.read_uint32(c_ref)
-        # fnames = []
-        # for i in range(0, c_ref):
-        #     fnames.append(bits.read_cstring())
-        # print('module', len(modules), c_mod)
-        # print('bits.positon', bits.position, 'end', end, 'c_ref', c_ref, 'len', len(fnames))
-
-        # files = []
-        # for i in xrange(0, c_mod):
-        #     these = []
-        #     for j in xrange(mod_start[i], mod_start[i]+c_ref_cnt[i]):
-        #         Name = CString("Name").parse(Names[NameRef[j]:])
-        #         files.append(Name)
-        #         these.append(Name)
-        #     modules.append(these)
+        end = bits.position + dh.filinf_size
+        c_mod = bits.read_uint16()
+        c_ref = bits.read_uint16()
+        mod_start = bits.read_uint16(c_mod)
+        c_ref_cnt = bits.read_uint16(c_mod)
+        name_ref = bits.read_uint32(c_ref)
+        fnames = {}
+        name_start = bits.position
+        for i in range(0, c_ref):
+            pos = bits.position - name_start
+            fnames[pos] = bits.read_cstring()
+        modfiles = []
+        try:
+            for m in range(0, c_mod):
+                fns = []
+                for n in range(mod_start[m], mod_start[m]+c_ref_cnt[m]):
+                    fns.append(fnames[name_ref[n]])
+                modfiles.append(fns)
+        except (IndexError, KeyError):
+            # XXX: why does this trigger for some pdb's
+            modfiles = []
         bits.position = end
 
         # Skip the TSM substream.
@@ -379,7 +380,7 @@ class PdbFile(object):
             header = DbiDbgHdr(bits)
         bits.position = end
         if ext is True:
-            return modules, header, dh # this is useful as this age is often used
+            return modules, header, dh, modfiles # this is useful as this age is often used
         return modules, header
 
     @classmethod
