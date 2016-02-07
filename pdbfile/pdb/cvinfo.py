@@ -540,14 +540,14 @@ class CV_LABEL_TYPE(object):
 
 
 # enumeration for LF_MODIFIER values
-class CV_modifier(UInt16):
+class CV_modifier(object):
     MOD_const = 0x0001
     MOD_volatile = 0x0002
     MOD_unaligned = 0x0004
 
 
 # bit field structure describing class/struct/union/enum properties
-class CV_prop(UInt16):
+class CV_prop(object):
     packed = 0x0001 # true if structure is packed
     ctor = 0x0002 # true if constructors or destructors present
     ovlops = 0x0004 # true if overloaded operators present
@@ -1349,7 +1349,7 @@ class SYM(object):
     S_LPROCIA64 = 0x1118 # Local procedure start (IA64)
     S_GPROCIA64 = 0x1119 # Global procedure start (IA64)
     S_LOCALSLOT = 0x111a # local IL sym with field for local slot index
-    S_SLOT = self._S_LOCALSLOT # alias for LOCALSLOT
+    S_SLOT = S_LOCALSLOT # alias for LOCALSLOT
     S_PARAMSLOT = 0x111b # local IL sym with field for parameter slot index
     
     # symbols to support managed code debugging
@@ -1394,8 +1394,10 @@ class SYM(object):
     S_EXPORT = 0x1138 # A export
     S_CALLSITEINFO = 0x1139 # Indirect call site information
     S_FRAMECOOKIE = 0x113a # Security cookie information
-    S_DISCARDED = 0x113b # Discarded by LINK /OPT:REF (experimental, see richards) # one greater than last
-    S_RECTYPE_LAST = SYM.S_RECTYPE_MAX - 1
+    S_DISCARDED = 0x113b # Discarded by LINK /OPT:REF (experimental, see richards)
+    
+    S_RECTYPE_MAX = 0x113c # one greater than last
+    S_RECTYPE_LAST = S_RECTYPE_MAX - 1
 
 
 # enum describing compile flag ambient data model
@@ -1419,7 +1421,7 @@ class CV_CFL_FPKG(object):
     CV_CFL_ALT = 0x02
 
 
-class CV_PROCFLAGS(Byte):
+class CV_PROCFLAGS(object):
     # enum describing function return method
     CV_PFLAG_NOFPO = 0x01 # frame pointer present
     CV_PFLAG_INT = 0x02 # interrupt return
@@ -1439,7 +1441,7 @@ class CV_EXPROCFLAGS(object):
 
 
 # local variable flags
-class CV_LVARFLAGS(UInt16):
+class CV_LVARFLAGS(object):
     fIsParam = 0x0001 # variable is a parameter
     fAddrTaken = 0x0002 # address is taken
     fCompGenx = 0x0004 # variable is compiler generated
@@ -1613,7 +1615,7 @@ class CFlagSym(object):
         self.ver = None # Length-prefixed compiler version string
 
 
-class COMPILESYM_FLAGS(UInt32):
+class COMPILESYM_FLAGS(object):
     iLanguage = 0x000000ff # language index
     fEC = 0x00000100 # compiled for E/C
     fNoDbgInfo = 0x00000200 # not compiled with debug info
@@ -2210,7 +2212,7 @@ class DEBUG_S_SUBSECTION_TYPE(object):
 #
 # Line flags (data present)
 #
-class CV_LINE_SUBSECTION_FLAGS(UInt16):
+class CV_LINE_SUBSECTION_FLAGS(object):
     CV_LINES_HAVE_COLUMNS = 0x0001
 
 
@@ -2248,8 +2250,8 @@ class CV_Column(object):
 
 
 #  File information
-class CV_FILE_CHECKSUM_TYPE(Byte):
-    None = 0
+class CV_FILE_CHECKSUM_TYPE(object):
+    NONE = 0
     MD5 = 1
 
 

@@ -36,8 +36,7 @@ class PdbFileHeader(object):
         reader.seek(0)
         bits.fill_buffer(reader, 52)
 
-        self.magic = bytearray(32)
-        bits.read_bytes(self.magic)                 #   0..31
+        self.magic = bits.read_bytes(32)            #   0..31
         self.page_size = bits.read_int32()          #  32..35
         self.free_pagemap = bits.read_int32()       #  36..39
         self.pages_used = bits.read_int32()         #  40..43

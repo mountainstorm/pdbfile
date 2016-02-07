@@ -6,6 +6,23 @@ A basic clone of the Microsoft clr [PDB file parser](https://github.com/Microsof
 I've tried to make it slightly more pythonic e.g. changing the naming scheme of members something python style, changing 'out' params into multiple returns
 
 
+Testing
+-------
+
+Testing is performed using a set of scripts to validate that nothings broken (since a previous run).
+
+### Prereqs ###
+
+* pefile; https://github.com/erocarrera/pefile
+* p7zip; keka7z (or similar)
+
+### Process ###
+
+1. run extract_signatures.py over a directory of pe files to extract the pdb signatures.  Save stdout to a file.
+2. run download_symbols.py using the saved signature file and a symbols server
+3. run test.py to validate those symbols against the saved info
+
+
 License
 -------
 MIT; see LICENSE for more info

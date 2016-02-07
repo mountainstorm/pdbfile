@@ -22,20 +22,25 @@
 # SOFTWARE.
 
 from __future__ import unicode_literals, print_function
+import argparse
+from pefile import PE, PEFormatError
+from pdbfile.pedebugdata import PEDebugData, PEMissingDebugDataError
+import os
+
+'''Simple script to parse pe files in a directory and extract the PDB signatures'''
 
 
-class PdbStreamHelper(object):
-    def __init__(self, reader, page_size):
-        self.page_size = page_size
-        self.reader = reader
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process the specified directory, extracting PDB signatures from any PE files')
+    parser.add_argument('root', help='the root folder to search from')
+    args = parser.parse_args()
 
-    def seek(self, page, offset):
-        self.reader.seek(page * self.page_size + offset)
-
-    def read(self, bytes, offset, count):
-        data = self.reader.read(count)
-        for i in range(0, count):
-            bytes[offset+i] = data[i]
-
-    def pages_from_size(self, size):
-        return (size + self.page_size - 1) / (self.page_size)
+    for root, dirs, files in os.walk(args.root):
+        for fn in files:
+            try:
+                pe = PE(os.path.join(root, fn), fast_load=True)
+                print(PEDebugData.symbol_id(pe))
+            except PEFormatError:
+                pass # not a pe file
+            except PEMissingDebugDataError:
+                pass

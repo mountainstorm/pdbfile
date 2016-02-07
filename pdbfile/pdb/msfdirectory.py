@@ -34,7 +34,7 @@ class MsfDirectory(object):
 
         # 0..n in page of directory pages.
         bits.min_capacity(head.directory_size)
-        directory_root_pages = head.directory_root.length
+        directory_root_pages = len(head.directory_root)
         pages_per_page = head.page_size / 4
         pages_to_go = pages
         for i in range(0, directory_root_pages):
@@ -48,7 +48,7 @@ class MsfDirectory(object):
 
         stream = DataStream(head.directory_size, bits, pages)
         bits.min_capacity(head.directory_size)
-        stream.eead(reader, bits)
+        stream.read(reader, bits)
 
         # 0..3 in directory pages
         count = bits.read_int32()

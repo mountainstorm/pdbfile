@@ -71,14 +71,14 @@ class PdbFile(object):
         # Read string buffer.
         buf = bits.read_int32()    # 28..31 Bytes of Strings
 
-        beg = bits.position;
+        beg = bits.position
         nxt = bits.position + buf
 
         bits.position = nxt
 
         # Read map index.
         cnt = bits.read_int32() # n+0..3 hash size.
-        max = bits.read_int32() # n+4..7 maximum ni.
+        mx = bits.read_int32() # n+4..7 maximum ni.
 
         present = BitSet(bits)
         deleted = BitSet(bits)
@@ -86,7 +86,7 @@ class PdbFile(object):
             raise PdbDebugException('Unsupported PDB deleted bitset is not empty.')
 
         j = 0;
-        for i in range(0, max):
+        for i in range(0, mx):
             if present.is_set(i):
                 ns = bits.read_int32()
                 ni = bits.read_int32()
@@ -96,7 +96,7 @@ class PdbFile(object):
                 name = bits.read_cstring()
                 bits.position = saved
 
-                result.add(name.to_upper_invariant(), ni)
+                result[name.upper()] = ni
                 j += 1
         if j != cnt:
             raise PdbDebugException('Count mismatch. (%u != %u)' % (j, cnt))
@@ -170,7 +170,7 @@ class PdbFile(object):
 
                     name = names[chk.name]
                     src = None
-                    n = name.to_upper_invariant()
+                    n = name.upper()
                     if n in sources:
                         src = sources[n]
                         doctype_guid = None
@@ -181,7 +181,7 @@ class PdbFile(object):
                         source = None
 
                         guid_stream = None
-                        n = '/SRC/FILES/' + name.to_upper_invariant()
+                        n = '/SRC/FILES/' + name.upper()
                         if n in name_index:
                             guid_stream = name_index[n]
                             guid_bits = BitAccess(0x100)
@@ -190,7 +190,7 @@ class PdbFile(object):
                              algorithm_id, checksum, source) = PdbFile.load_guid_stream(guid_bits)
 
                         src = PdbSource(name, doctype_guid, language_guid, vendor_guid, algorithm_id, checksum, source)
-                        sources[name.to_upper_invariant()] = src
+                        sources[name.upper()] = src
                     checks[ni] = src
                     bits.position += chk.length
                     bits.align(4)
@@ -319,7 +319,7 @@ class PdbFile(object):
     @classmethod
     def load_dbi_stream(cls, bits, read_strings):
         dh = DbiHeader(bits)
-        header = DbiDbgHdr()
+        header = None
 
         #if dh.sig != -1 or dh.ver != 19990903:
         #   raise PdbException('Unsupported DBI Stream version, sig=%u, ver=%u' % (dh.sig, dh.ver))
@@ -364,7 +364,7 @@ class PdbFile(object):
         if bits is None:
             bits = BitAccess(512 * 1024)    
         head = PdbFileHeader(read, bits)
-        reader = PdbStreamHelper(read, head.PageSize)
+        reader = PdbStreamHelper(read, head.page_size)
         directory = MsfDirectory(reader, head, bits)
 
         directory.streams[1].read(reader, bits)
@@ -372,7 +372,7 @@ class PdbFile(object):
         try:
             name_stream = name_index['/NAMES']
         except KeyError:
-            raise PdbException('No "name" stream')
+            raise PdbException('No "/names" stream')
 
         directory.streams[name_stream].read(reader, bits)
         names = PdbFile.load_name_stream(bits)

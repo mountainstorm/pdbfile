@@ -33,17 +33,19 @@ class BitAccess(object):
 
     def fill_buffer(self, stream, capacity):
         self.min_capacity(capacity)
-        pos = stream.tell()
-        stream.seek(0)
-        self.buffer = stream.read(capacity)
-        stream.seek(pos)
+        data = stream.read(capacity)
+        for i in range(0, capacity):
+            self.buffer[i] = data[i]
         self.position = 0
 
     def append(self, stream, count):
-        pos = stream.tell()
-        stream.seek(self.position)
-        self.buffer = buffer + stream.read(count)
-        stream.seek(pos)
+        if len(self.buffer) < self.position + count:
+            self.buffer += bytearray(
+                self.position + count - len(self.buffer)
+            )
+        data = stream.read(count)
+        for i in range(0, count):
+            self.buffer[self.position+i] = data[i]        
         self.position += count
 
     def min_capacity(self, capacity):
@@ -56,15 +58,15 @@ class BitAccess(object):
             self.position += 1
 
     def read_raw(self, tpe, sz, count):
-        fmt = '>%s' % tpe
-        if count is not None:
-            fmt = '>%u%s' % (count, tpe)
-        value = struct.unpack(fmt, self.buffer[self.position:self.position+2])
+        br = count
         if count is None:
-            self.position += sz
-            value = value[0]
-        else:
-            self.position += sz * count
+            br = 1
+        fmt = '<%u%s' % (br, tpe)
+        sz = struct.calcsize(fmt)
+        value = struct.unpack(fmt, self.buffer[self.position:self.position+sz])
+        self.position += sz
+        if count is None:
+            value = value[0]           
         return value
 
     def read_int8(self, count=None):
@@ -95,18 +97,20 @@ class BitAccess(object):
         return self.read_raw('f', 4, count)
 
     def read_double(self, count=None):
-        return self.read_raw('d', 4, count)
+        return self.read_raw('d', 8, count)
 
-    # internal decimal ReadDecimal()
-    # {
-    #     int[] bits = new int[4];
-    #     this.ReadInt32(bits);
-    #     return new decimal(bits[2], bits[3], bits[1], bits[0] < 0, (byte)((bits[0] & 0x00FF0000) >> 16));
-    # }
+    def read_bytes(self, count):
+        return self.read_uint8(count)
+
+    def ReadDecimal(self):
+        raise NotImplementedException()
+        # int[] bits = new int[4];
+        # this.ReadInt32(bits);
+        # return new decimal(bits[2], bits[3], bits[1], bits[0] < 0, (byte)((bits[0] & 0x00FF0000) >> 16));
 
     def read_bstring(self):
         length = self.read_uint16()
-        value = buffer[self.position:self.position+length].decode('utf-8', 'ignore')
+        value = self.buffer[self.position:self.position+length].decode('utf-8', 'ignore')
         self.position += length
         return value
 
@@ -115,7 +119,7 @@ class BitAccess(object):
         while (self.position + length < len(self.buffer) and
                self.buffer[self.position + length] != 0):
             length += 1
-        value = buffer[self.position:self.position+length].decode('utf-8', 'ignore')
+        value = self.buffer[self.position:self.position+length].decode('utf-8', 'ignore')
         self.position += length + 1
         return value
 
@@ -123,13 +127,17 @@ class BitAccess(object):
         self.read_cstring()
 
     def read_guid(self):
-        return uuid.UUID(self.read(16))
+        src = self.read_bytes(16)
+        data = str()
+        for i in range(0, len(src)):
+            data += chr(src[i])
+        return uuid.UUID(bytes_le=data)
 
     def read_string(self):
         length = 0
         while (self.position + length < len(self.buffer) and
                self.buffer[self.position+length] != 0):
             length += 2
-        value = buffer[self.position:self.position+length].decode('utf-16', 'ignore')
+        value = self.buffer[self.position:self.position+length].decode('utf-16', 'ignore')
         self.position += length + 2
         return value

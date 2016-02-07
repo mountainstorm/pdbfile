@@ -35,7 +35,8 @@ from cvinfo import SYM, ManProcSym, BlockSym32, OemSymbol
 class PdbFunction(object):
     '''Represents a single function in a module.'''
 
-    msilMetaData = uuid.uuid(0xc6ea3fc9, 0x59b3, 0x49d6, 0xbc, 0x25, 0x09, 0x02, 0xbb, 0xab, 0xb4, 0x60)
+    #msil_meta_data = uuid.UUID(0xc6ea3fc9, 0x59b3, 0x49d6, 0xbc, 0x25, 0x09, 0x02, 0xbb, 0xab, 0xb4, 0x60)
+    msil_meta_data = uuid.UUID(fields=(0xc6ea3fc9, 0x59b3, 0x49d6, 0xbc, 0x25, 0x0902bbabb460))
 
     @classmethod
     def by_address(cls, fx, fy):
@@ -167,7 +168,7 @@ class PdbFunction(object):
         bits.position = pos
         return constants, scopes, slots, used_namespaces
 
-    def __init__(self, proc, bits):
+    def __init__(self, proc=None, bits=None):
         self.slot_token = 0
         self.slots = [] # PdbSlot
         self.constants = [] # PdbConstant
@@ -176,10 +177,16 @@ class PdbFunction(object):
         self.iterator_class = None # unicode
         self.sequence_points = []
         self.sequence_points = [] # PdbSequencePointCollection
+        self.token = None
+        self.segment = None
+        self.address = None
+        self.scopes = [] # PdbScope
+        if proc is None and bits is None:
+            return # default constructor
+
         self.token = proc.token
         self.segment = proc.seg
         self.address = proc.off
-        self.scopes = [] # PdbScope
         if proc.seg != 1:
             raise PdbDebugException('Segment is %u, not 1.' % proc.seg)
         if proc.parent != 0 or proc.next != 0:

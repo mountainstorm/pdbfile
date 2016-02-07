@@ -26,23 +26,28 @@ from __future__ import unicode_literals, print_function
 
 from pdbexception import PdbException
 
-
 class DataStream(object):
-    def __init__(self, content_size, bits, count):
+    def __init__(self, content_size=None, bits=None, count=None):
+        if content_size is None and bits is None and count is None:
+            self.content_size = 0
+            self.pages = []
+            return # default constructor
         self.content_size = content_size
         if count > 0:
             self.pages = bits.read_int32(count)
 
-    def read_bits(self, reader, bits):
-        bits.min_capacity(self.content_size)
-        bits.buffer = self.read(reader, 0, 0, self.content_size)
-
-    def read(self, reader, position, bytedata, offset, data):
+    def read(self, reader, position, bytedata=None, offset=None, data=None):
+        if bytedata is None and offset is None and data is None:
+            # called with 2 params
+            bits = position
+            bits.min_capacity(self.content_size)
+            return self.read(reader, 0, bits.buffer, 0, self.content_size)
+        # called with all
         if position + data > self.content_size:
             raise PdbException('DataStream can\'t read off end of stream. ' +
                                '(pos=%u,siz=%u)' % (position, data))
         if position == self.content_size:
-            return None
+            return
         left = data
         page = position / reader.page_size
         rema = position % reader.page_size

@@ -79,13 +79,13 @@ class PdbReader(object):
 
             directory.streams[1].read(reader, bits)
 
-            ver = bits.read_int32()   #  0..3  Version
-            sig = bits.read_int32()   #  4..7  Signature
-            age = bits.read_int32()   #  8..11 Age
-            guid = bits.ReadGuid();   # 12..27 GUID
-        return guid, ver, age, sig
+            bits.read_int32()          #  0..3  Version
+            bits.read_int32()          #  4..7  Signature
+            age = bits.read_int32()    #  8..11 Age
+            guid = bits.read_guid();   # 12..27 GUID
+        return guid, age
 
-    def get_function_From_token(self, method_token):
+    def get_function_from_token(self, method_token):
         '''Retreives a PdbFunction by its metadata token'''
         retval = None
         if method_token in self._pdb_function_map:
