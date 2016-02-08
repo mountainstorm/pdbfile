@@ -316,8 +316,11 @@ class PdbFile(object):
             for i in range(0, len(funcs)):
                 func_list.append(funcs[i])
 
+    EXT_DBIHEADER = 0x1
+    EXT_MODULE_FILES = 0x2
+
     @classmethod
-    def load_dbi_stream(cls, bits, read_strings, ext=False):
+    def load_dbi_stream(cls, bits, read_strings, ext=0):
         dh = DbiHeader(bits)
         header = None
 
@@ -346,26 +349,26 @@ class PdbFile(object):
         # Skip the File Info substream; sstFileIndex
         # http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
         end = bits.position + dh.filinf_size
-        c_mod = bits.read_uint16()
-        c_ref = bits.read_uint16()
-        mod_start = bits.read_uint16(c_mod)
-        c_ref_cnt = bits.read_uint16(c_mod)
-        name_ref = bits.read_uint32(c_ref)
-        fnames = {}
-        name_start = bits.position
-        for i in range(0, c_ref):
-            pos = bits.position - name_start
-            fnames[pos] = bits.read_cstring()
-        modfiles = []
-        try:
-            for m in range(0, c_mod):
-                fns = []
-                for n in range(mod_start[m], mod_start[m]+c_ref_cnt[m]):
-                    fns.append(fnames[name_ref[n]])
-                modfiles.append(fns)
-        except (IndexError, KeyError):
-            # XXX: why does this trigger for some pdb's
+        if ext == PdbFile.EXT_MODULE_FILES:
+            c_mod = bits.read_uint16()
+            c_ref = bits.read_uint16()
+            mod_start = bits.read_uint16(c_mod)
+            c_ref_cnt = bits.read_uint16(c_mod)
+            name_ref = bits.read_uint32(c_ref)
+            fnames = {}
+            name_start = bits.position
+            for i in range(0, c_ref):
+                pos = bits.position - name_start
+                fnames[pos] = bits.read_cstring()
             modfiles = []
+            try:
+                for m in range(0, c_mod):
+                    fns = []
+                    for n in range(mod_start[m], mod_start[m]+c_ref_cnt[m]):
+                        fns.append(fnames[name_ref[n]])
+                    modfiles.append(fns)
+            except (IndexError, KeyError):
+                raise PdbDebugException('Error reading module_files')
         bits.position = end
 
         # Skip the TSM substream.
@@ -379,8 +382,11 @@ class PdbFile(object):
         if dh.dbghdr_size > 0:
             header = DbiDbgHdr(bits)
         bits.position = end
-        if ext is True:
-            return modules, header, dh, modfiles # this is useful as this age is often used
+        if ext > 0:
+            # this is useful as this age is often used
+            if ext == PdbFile.EXT_DBIHEADER:
+                modfiles = None
+            return modules, header, dh, modfiles
         return modules, header
 
     @classmethod

@@ -23,7 +23,7 @@
 
 from __future__ import unicode_literals, print_function
 import argparse
-from pdbfile.pdbfile import PDB
+from pdbfile.pdbfile import PDB, PdbUnsupportedError
 import traceback
 import hashlib
 import json
@@ -37,6 +37,8 @@ def pdb_info(path):
     try:
         pdb = PDB(path)
         # XXX: create json from pdb
+    except PdbUnsupportedError, e:
+        print('  %s' % e)
     except:
         print(traceback.format_exc())
     return {}

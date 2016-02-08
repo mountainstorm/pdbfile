@@ -27,6 +27,8 @@ from pdb.pdbfileheader import PdbFileHeader
 from pdb.pdbstreamhelper import PdbStreamHelper
 from pdb.msfdirectory import MsfDirectory
 from pdb.pdbfile import PdbFile
+from pdb.pdbexception import PdbException
+from pdb.pdbdebugexception import PdbDebugException
 import os
 
 
@@ -34,7 +36,7 @@ class PDBInvalidError(Exception):
     pass
 
 
-class PDB2Error(Exception):
+class PdbUnsupportedError(Exception):
     pass
 
 
@@ -49,14 +51,15 @@ class NameStream(object):
 
 
 class DbiStream(object):
-    def __init__(self, reader, bits, directory):
+    def __init__(self, reader, bits, directory, ext=PdbFile.EXT_MODULE_FILES):
         directory.streams[3].read(reader, bits)
+        self.module_files = None
         (self.modules,
          self.header,
          self.dbghdr,
-         self.module_files) = PdbFile.load_dbi_stream(bits, True, True)
-        if len(self.module_files) != len(self.modules):
-            pass # no module_file info
+         self.module_files) = PdbFile.load_dbi_stream(
+            bits, True, ext
+        )
 
 
 class PDB(object):
@@ -73,9 +76,16 @@ class PDB(object):
         self.directory = MsfDirectory(self.reader, self.header, self.bits)
         # streams
         self.name_stream = NameStream(self.reader, self.bits, self.directory)
-        # XXX: handle case where there is not dbi stream
-        self.dbi_stream = DbiStream(self.reader, self.bits, self.directory)
-
+        self.dbi_stream = None
+        try:
+            self.dbi_stream = DbiStream(self.reader, self.bits, self.directory)
+        except PdbDebugException:
+            # try without files
+            self.dbi_stream = DbiStream(
+                self.reader, self.bits, self.directory, PdbFile.EXT_DBIHEADER
+            )        
+        except PdbException, e:
+            raise PdbUnsupportedError(e)
         # generate the symbol id which will match the one from the PE file
         age = self.name_stream.age
         if self.dbi_stream is not None:
@@ -111,7 +121,7 @@ class PDB(object):
             if magic != pdb2:
                 raise PDBInvalidError('File not a PDB or contains an invalid header')
             else:
-                raise PDB2Error('File is an unsupported PDB2 symbol file')
+                raise PdbUnsupportedError('File is an unsupported PDB2 symbol file')
 
 
 
