@@ -65,10 +65,12 @@ class DbiStream(object):
 class PDB(object):
     '''Helper for retrieving information from PDB file'''
 
-    def __init__(self, path):
+    def __init__(self, path, filename=None):
         self.bits = BitAccess(512 * 1024)
         self.path = path
-        self.filename = os.path.basename(path)
+        self.filename = filename
+        if filename is None:
+            self.filename = os.path.basename(path)
         self.pdb_stream = open(path, 'rb')
         self.check_format()
         self.header = PdbFileHeader(self.pdb_stream, self.bits)
