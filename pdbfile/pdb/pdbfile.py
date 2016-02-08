@@ -321,8 +321,8 @@ class PdbFile(object):
         dh = DbiHeader(bits)
         header = None
 
-        #if dh.sig != -1 or dh.ver != 19990903:
-        #   raise PdbException('Unsupported DBI Stream version, sig=%u, ver=%u' % (dh.sig, dh.ver))
+        if dh.sig != -1 or dh.ver != 19990903:
+          raise PdbException('Unsupported DBI Stream version, sig=%u, ver=%u' % (dh.sig, dh.ver))
 
         # Read gpmod section.
         mod_list = [] # of DbiModuleInfo
