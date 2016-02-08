@@ -48,7 +48,7 @@ class CodeViewRSDS(object):
         # generate symbol_id
         guid = str(self.guid).replace('-', '').upper()
         fn = ntpath.basename(self.filename).lower()
-        self.symbol_id = '%s\\%s%X' % (fn, guid, self.age)
+        self.symbol_id = '%s/%s%X' % (fn, guid, self.age)
 
 
 class CodeViewNB10(object):
@@ -63,7 +63,7 @@ class CodeViewNB10(object):
         self.filename = data[sz:sz+i].decode('utf-8', 'ignore')
         # generate symbol_id
         fn = ntpath.basename(self.filename).lower()
-        self.symbol_id = '%s\\%X%X' % (
+        self.symbol_id = '%s/%X%X' % (
             fn, self.timestamp, self.age
         )
 

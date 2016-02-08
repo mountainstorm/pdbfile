@@ -53,7 +53,6 @@ class NameStream(object):
 class DbiStream(object):
     def __init__(self, reader, bits, directory, ext=PdbFile.EXT_MODULE_FILES):
         directory.streams[3].read(reader, bits)
-        self.module_files = None
         (self.modules,
          self.header,
          self.dbghdr,
@@ -92,7 +91,7 @@ class PDB(object):
         age = self.name_stream.age
         if self.dbi_stream is not None:
             age = self.dbi_stream.dbghdr.age
-        self.symbol_id = '%s\\%s%X' % (
+        self.symbol_id = '%s/%s%X' % (
             self.filename,
             str(self.name_stream.guid).replace('-', '').upper(),
             age
