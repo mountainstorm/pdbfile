@@ -23,7 +23,7 @@
 
 from __future__ import unicode_literals, print_function
 
-from pefile import DEBUG_TYPE, DIRECTORY_ENTRY
+from pefile import PE, DEBUG_TYPE, DIRECTORY_ENTRY
 import struct
 import ntpath
 import uuid
@@ -69,12 +69,25 @@ class CodeViewNB10(object):
 
 
 class PEDebugData(object):
-    def __init__(self, pe):
-        self.pe = pe
+    def __init__(self, path, filename=None):
+        self.pe = PE(path, fast_load=True)
+        self.path = path
+        self.filename = filename
+        if filename is None:
+            self.filename = os.path.basename(path)
 
-    @classmethod
-    def symbol_id(cls, pe):
-        return PEDebugData(pe).codeview_info().symbol_id
+    @property
+    def symbol_id(self):
+        return self.codeview_info().symbol_id
+
+    @property
+    def executable_id(self):
+        retval = None
+        if self.filename is not None:
+            retval = '%s/%X%X' % (self.filename.lower(),
+                                  self.pe.FILE_HEADER.TimeDateStamp,
+                                  self.pe.OPTIONAL_HEADER.SizeOfImage)
+        return retval
 
     def codeview_info(self):
         info = None

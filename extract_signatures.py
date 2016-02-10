@@ -39,7 +39,7 @@ if __name__ == '__main__':
         for fn in files:
             try:
                 pe = PE(os.path.join(root, fn), fast_load=True)
-                print(PEDebugData.symbol_id(pe))
+                print(PEDebugData(pe).symbol_id)
             except PEFormatError:
                 pass # not a pe file
             except PEMissingDebugDataError:
