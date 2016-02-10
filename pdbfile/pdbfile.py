@@ -92,7 +92,7 @@ class PDB(object):
         if self.dbi_stream is not None:
             age = self.dbi_stream.dbghdr.age
         self.symbol_id = '%s/%s%X' % (
-            self.filename,
+            self.filename.lower(),
             str(self.name_stream.guid).replace('-', '').upper(),
             age
         )
