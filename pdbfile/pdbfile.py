@@ -64,7 +64,7 @@ class DbiStream(object):
 class PDB(object):
     '''Helper for retrieving information from PDB file'''
 
-    def __init__(self, path, filename=None):
+    def __init__(self, path, filename=None, ignore_dbi=False):
         self.bits = BitAccess(512 * 1024)
         self.path = path
         self.filename = filename
@@ -78,6 +78,7 @@ class PDB(object):
         # streams
         self.name_stream = NameStream(self.reader, self.bits, self.directory)
         self.dbi_stream = None
+        age = None
         try:
             self.dbi_stream = DbiStream(self.reader, self.bits, self.directory)
         except PdbDebugException:
@@ -86,7 +87,8 @@ class PDB(object):
                 self.reader, self.bits, self.directory, PdbFile.EXT_DBIHEADER
             )        
         except PdbException, e:
-            raise PdbUnsupportedError(e)
+            if ignore_dbi == False:
+                raise PdbUnsupportedError(e)
         # generate the symbol id which will match the one from the PE file
         age = self.name_stream.age
         if self.dbi_stream is not None:
