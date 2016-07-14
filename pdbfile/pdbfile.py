@@ -32,11 +32,19 @@ from pdb.pdbdebugexception import PdbDebugException
 import os
 
 
-class PDBInvalidError(Exception):
+class PdbError(Exception):
+    pass
+    
+
+class PdbInvalidError(PdbError):
     pass
 
 
-class PdbUnsupportedError(Exception):
+class PdbUnsupportedError(PdbError):
+    pass
+
+
+class PdbMissingDBIError(PdbError):
     pass
 
 
@@ -88,7 +96,7 @@ class PDB(object):
             )        
         except PdbException, e:
             if ignore_dbi == False:
-                raise PdbUnsupportedError(e)
+                raise PdbMissingDBIError(e)
         # generate the symbol id which will match the one from the PE file
         age = self.name_stream.age
         if self.dbi_stream is not None:
@@ -122,7 +130,7 @@ class PDB(object):
             magic = self.pdb_stream.read(len(pdb2))
             self.pdb_stream.seek(0)
             if magic != pdb2:
-                raise PDBInvalidError('File not a PDB or contains an invalid header')
+                raise PdbInvalidError('File not a PDB or contains an invalid header')
             else:
                 raise PdbUnsupportedError('File is an unsupported PDB2 symbol file')
 

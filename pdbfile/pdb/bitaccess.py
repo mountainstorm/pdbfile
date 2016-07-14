@@ -136,7 +136,8 @@ class BitAccess(object):
     def read_string(self):
         length = 0
         while (self.position + length < len(self.buffer) and
-               self.buffer[self.position+length] != 0):
+               self.buffer[self.position+length] != 0 and
+               self.buffer[self.position+length+1] != 0):
             length += 2
         value = self.buffer[self.position:self.position+length].decode('utf-16', 'ignore')
         self.position += length + 2
