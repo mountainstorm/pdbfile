@@ -34,7 +34,7 @@ import os
 
 class PdbError(Exception):
     pass
-    
+
 
 class PdbInvalidError(PdbError):
     pass
@@ -44,12 +44,19 @@ class PdbUnsupportedError(PdbError):
     pass
 
 
+class PdbMissingNameStreamError(PdbError):
+    pass
+
+
 class PdbMissingDBIError(PdbError):
     pass
 
 
 class NameStream(object):
-    def __init__(self, reader, bits, directory):
+    def __init__(self, reader, directory):
+        if directory.streams[1].content_size == 0:
+            raise PdbMissingNameStreamError()        
+        bits = BitAccess(512 * 1024)
         directory.streams[1].read(reader, bits)
         (self.name_index,
          self.ver,
@@ -59,7 +66,10 @@ class NameStream(object):
 
 
 class DbiStream(object):
-    def __init__(self, reader, bits, directory, ext=PdbFile.EXT_MODULE_FILES):
+    def __init__(self, reader, directory, ext=PdbFile.EXT_MODULE_FILES):
+        if directory.streams[3].content_size == 0:
+            raise PdbMissingDBIError()
+        bits = BitAccess(512 * 1024)
         directory.streams[3].read(reader, bits)
         (self.modules,
          self.header,
@@ -73,30 +83,30 @@ class PDB(object):
     '''Helper for retrieving information from PDB file'''
 
     def __init__(self, path, filename=None, ignore_dbi=False):
-        self.bits = BitAccess(512 * 1024)
+        bits = BitAccess(512 * 1024)
         self.path = path
         self.filename = filename
         if filename is None:
             self.filename = os.path.basename(path)
         self.pdb_stream = open(path, 'rb')
         self.check_format()
-        self.header = PdbFileHeader(self.pdb_stream, self.bits)
+        self.header = PdbFileHeader(self.pdb_stream, bits)
         self.reader = PdbStreamHelper(self.pdb_stream, self.header.page_size)
-        self.directory = MsfDirectory(self.reader, self.header, self.bits)
+        self.directory = MsfDirectory(self.reader, self.header, bits)
         # streams
-        self.name_stream = NameStream(self.reader, self.bits, self.directory)
+        self.name_stream = NameStream(self.reader, self.directory)
         self.dbi_stream = None
         age = None
         try:
-            self.dbi_stream = DbiStream(self.reader, self.bits, self.directory)
+            self.dbi_stream = DbiStream(self.reader, self.directory)
         except PdbDebugException:
             # try without files
             self.dbi_stream = DbiStream(
-                self.reader, self.bits, self.directory, PdbFile.EXT_DBIHEADER
+                self.reader, self.directory, PdbFile.EXT_DBIHEADER
             )        
-        except PdbException, e:
+        except PdbMissingDBIError, e:
             if ignore_dbi == False:
-                raise PdbMissingDBIError(e)
+                raise e
         # generate the symbol id which will match the one from the PE file
         age = self.name_stream.age
         if self.dbi_stream is not None:
