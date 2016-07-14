@@ -38,8 +38,7 @@ if __name__ == '__main__':
     for root, dirs, files in os.walk(args.root):
         for fn in files:
             try:
-                pe = PE(os.path.join(root, fn), fast_load=True)
-                print(PEDebugData(pe).symbol_id)
+                print(PEDebugData(os.path.join(root, fn), fn).symbol_id)
             except PEFormatError:
                 pass # not a pe file
             except PEMissingDebugDataError:

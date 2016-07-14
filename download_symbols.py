@@ -52,7 +52,7 @@ def download_file(url, output):
         with open(fn, 'wb') as symbol:
             symbol.write(req.read())
             retval = fn
-    except (HTTPError, URLError):
+    except (HTTPError, URLError) as e:
         pass
     return retval
 
@@ -91,11 +91,11 @@ if __name__ == '__main__':
             symbols.add(line.strip())
     # now process all the unique symbols
     for symbol_id in list(symbols):
-        filename = symbol_id[:symbol_id.find('\\')]
+        filename = symbol_id[:symbol_id.find('/')]
         # first try to get the uncompressed version
         url = posixpath.join(
             args.symsvr,
-            symbol_id.replace('\\', '/'),
+            symbol_id,
             filename
         )
         print('downloading: %s' % url)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
             # try to get the compressed version
             url = posixpath.join(
                 args.symsvr,
-                symbol_id.replace('\\', '/'),
+                symbol_id,
                 filename[:-1] + '_'
             )
             print('downloading: %s' % url)
