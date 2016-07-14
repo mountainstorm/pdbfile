@@ -29,7 +29,7 @@ from pdbdebugexception import PdbDebugException
 from pdbscope import PdbScope
 from pdbslot import PdbSlot
 from pdbconstant import PdbConstant
-from cvinfo import SYM, ManProcSym, BlockSym32, OemSymbol
+from cvinfo import SYM, ManProcSym, ProcSym32, BlockSym32, OemSymbol
 
 
 class PdbFunction(object):
@@ -87,17 +87,22 @@ class PdbFunction(object):
             stop = bits.position + siz
             bits.position = star
             rec = bits.read_uint16()
+            #print('0x%x' % rec)
             if rec == SYM.S_GMANPROC or rec == SYM.S_LMANPROC:
                 proc = ManProcSym()
                 proc.parent = bits.read_uint32()
                 proc.end = bits.read_uint32()
                 bits.position = proc.end
                 count += 1
+            elif rec == SYM.S_GPROC32 or rec == SYM.S_LPROC32:
+                bits.position = stop
+                count += 1
             elif rec == SYM.S_END:
                 bits.position = stop
             else:
                 #print('%u: %u %y' %(bits.position, rec, rec))
                 bits.position = stop
+
         if count == 0:
             return None
 
@@ -129,6 +134,26 @@ class PdbFunction(object):
                 #print('token=%08x [%s::%s]" % (proc.token, module, proc.name))
                 bits.position = stop
                 funcs.append(PdbFunction(proc, bits))
+            elif rec == SYM.S_GPROC32 or rec == SYM.S_LPROC32:
+                proc = ProcSym32()
+                proc.parent = bits.read_uint32()
+                proc.end = bits.read_uint32()
+                proc.next = bits.read_uint32()
+                proc.length = bits.read_uint32()
+                proc.dbg_start = bits.read_uint32()
+                proc.dbg_end = bits.read_uint32()
+                proc.token = bits.read_uint32()
+                proc.off = bits.read_uint32()
+                proc.seg = bits.read_uint16()
+                proc.flags = bits.read_uint8()
+                # XXX: this doesn't match with the CV spec, but appears right?
+                if read_strings:
+                    proc.name = bits.read_cstring()
+                else:
+                    proc.name = bits.skip_cstring()
+                #print('function: 0x%08x: %s' % (proc.off, proc.name))
+                bits.position = stop
+                funcs.append(PdbFunction(proc, bits))
             else:
                 #raise PdbDebugException('Unknown SYMREC %u" % rec)
                 bits.position = stop
@@ -143,7 +168,7 @@ class PdbFunction(object):
         slots = 0
         scopes = 0
         used_namespaces = 0
-        while bits.Position < limit:
+        while bits.position < limit:
             siz = bits.read_uint16()
             star = bits.position
             stop = bits.position + siz
@@ -174,6 +199,7 @@ class PdbFunction(object):
         self.constants = [] # PdbConstant
         self.namespaces = [] # unicode
         self.using_counts = [] # ushort 
+        self.name = None # name
         self.iterator_class = None # unicode
         self.sequence_points = []
         self.sequence_points = [] # PdbSequencePointCollection
@@ -184,6 +210,7 @@ class PdbFunction(object):
         if proc is None and bits is None:
             return # default constructor
 
+        self.name = proc.name
         self.token = proc.token
         self.segment = proc.seg
         self.address = proc.off
@@ -191,7 +218,7 @@ class PdbFunction(object):
             raise PdbDebugException('Segment is %u, not 1.' % proc.seg)
         if proc.parent != 0 or proc.next != 0:
             raise PdbDebugException('Warning parent=%u, next=%u' % (proc.parent, proc.next))
-        constant_count, scope_count, slot_count, used_namespaces_count = PdbFunction.CountScopesAndSlots(bits, proc.end)
+        constant_count, scope_count, slot_count, used_namespaces_count = PdbFunction.count_scopes_and_slots(bits, proc.end)
 
         if constant_count > 0 or slot_count > 0 or used_namespaces_count > 0:
             self.scopes.append(PdbScope(self.address, proc.len, self.slots, self.constants, self.namespaces))
@@ -227,9 +254,9 @@ class PdbFunction(object):
                 block.length = bits.read_uint32()
                 block.off = bits.read_uint32()
                 block.seg = bits.read_uint16()
-                block.name = bits.skip_cstring()
+                block.name = bits.read_cstring()
                 bits.Position = stop
-                self.scopes.append(PdbScope(self.Address, block, bits))
+                self.scopes.append(PdbScope(self.address, block, bits))
                 self.slot_token = self.scopes[-1].typind
                 bits.position = block.end
                 

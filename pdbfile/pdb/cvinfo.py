@@ -1767,7 +1767,7 @@ class ProcSym32(object):
         self.dbg_end = 0 # Debug end offset
         self.typind = 0 # (type index) Type index
         self.off = 0
-        self.sef = 0
+        self.seg = 0
         self.flags = 0 # (CV_PROCFLAGS) Proc flags
         self.name = None # Length-prefixed name
 

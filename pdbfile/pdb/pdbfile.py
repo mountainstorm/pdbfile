@@ -159,7 +159,7 @@ class PdbFile(object):
             siz = bits.read_int32()
             place = bits.position
             end_sym = bits.position + siz
-            if DEBUG_S_SUBSECTION.sig == DEBUG_S_SUBSECTION.FILECHKSMS:
+            if sig == DEBUG_S_SUBSECTION.FILECHKSMS:
                 while bits.position < end_sym:
                     chk = CV_FileCheckSum()
 
@@ -212,7 +212,7 @@ class PdbFile(object):
                 sec.sec = bits.read_uint16()
                 sec.flags = bits.read_uint16()
                 sec.cod = bits.read_uint32()
-                func_index = PdbFile.FindFunction(funcs, sec.sec, sec.off)
+                func_index = PdbFile.find_function(funcs, sec.sec, sec.off)
                 if func_index < 0:
                     break
                 func = funcs[func_index]
@@ -226,13 +226,13 @@ class PdbFile(object):
                         func = f
                         func_index -= 1
                 else:
-                    while func_index < funcs.length - 1 and func.sequence_points is not None:
+                    while func_index < len(funcs) - 1 and func.sequence_points is not None:
                         f = funcs[func_index + 1]
                         if f.segment != sec.sec or f.address != sec.off:
                             break
                         func = f
                         func_index += 1
-                if func.SequencePoints is not None:
+                if func.sequence_points is not None:
                     break
 
                 # Count the line blocks.
@@ -304,14 +304,13 @@ class PdbFile(object):
         sig = bits.read_int32()
         if sig != 4:
             raise PdbDebugException('Invalid signature. (sig=%u)' % sig)
-
         bits.position = 4
-        # print('%s' % info.module_name)
+        #print('%s' % info.module_name, len(bits.buffer), info.cb_syms, read_strings)
         funcs = PdbFunction.load_managed_functions(bits, info.cb_syms, read_strings)
         if funcs is not None:
             bits.position = info.cb_syms + info.cb_old_lines
             PdbFile.load_managed_lines(funcs, names, bits, directory, name_index, reader,
-                                       (info.cb_syms + info.cb_old_lines + info.cb_ines),
+                                       (info.cb_syms + info.cb_old_lines + info.cb_lines),
                                        sources)
             for i in range(0, len(funcs)):
                 func_list.append(funcs[i])
@@ -397,26 +396,30 @@ class PdbFile(object):
         reader = PdbStreamHelper(read, head.page_size)
         directory = MsfDirectory(reader, head, bits)
 
-        directory.streams[1].read(reader, bits)
-        name_index, ver, sig, age, guid = PdbFile.load_name_index(bits)
+        bits1 = BitAccess(512 * 1024)
+        directory.streams[1].read(reader, bits1)
+        name_index, ver, sig, age, guid = PdbFile.load_name_index(bits1)
         try:
             name_stream = name_index['/NAMES']
         except KeyError:
             raise PdbException('No "/names" stream')
 
-        directory.streams[name_stream].read(reader, bits)
-        names = PdbFile.load_name_stream(bits)
+        bitsn = BitAccess(512 * 1024)
+        directory.streams[name_stream].read(reader, bitsn)
+        names = PdbFile.load_name_stream(bitsn)
 
-        directory.streams[3].read(reader, bits)
-        modules, header = PdbFile.load_dbi_stream(bits, read_all_strings)
+        bits3 = BitAccess(512 * 1024)
+        directory.streams[3].read(reader, bits3)
+        modules, header = PdbFile.load_dbi_stream(bits3, read_all_strings)
 
         func_list = [] # PdbFunction
         source_dictionary = {} # string -> PdbSource
         if modules is not None:
             for m in range(0, len(modules)):
                 if modules[m].stream > 0:
-                    directory.streams[modules[m].stream].read(reader, bits)
-                    PdbFile.load_funcs_from_dbi_module(bits,
+                    bitsm = BitAccess(512 * 1024)
+                    directory.streams[modules[m].stream].read(reader, bitsm)
+                    PdbFile.load_funcs_from_dbi_module(bitsm,
                                                        modules[m],
                                                        names,
                                                        func_list,
