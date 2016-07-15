@@ -7,9 +7,12 @@ I've tried to make it slightly more pythonic e.g. changing the naming scheme of 
 
 References
 ----------
+I was using these:
 * http://pierrelib.pagesperso-orange.fr/exec_formats/MS_Symbol_Type_v1.0.pdf
 * http://sawbuck.googlecode.com/svn-history/r922/trunk/syzygy/pdb/pdb_dbi_stream.cc
 
+But MS have now published all their internal source for PDB parsing:
+https://github.com/Microsoft/microsoft-pdb/
 
 Testing
 -------

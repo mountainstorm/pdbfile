@@ -201,8 +201,7 @@ class PdbFunction(object):
         self.using_counts = [] # ushort 
         self.name = None # name
         self.iterator_class = None # unicode
-        self.sequence_points = []
-        self.sequence_points = [] # PdbSequencePointCollection
+        self.sequence_points = None # PdbSequencePointCollection
         self.token = None
         self.segment = None
         self.address = None

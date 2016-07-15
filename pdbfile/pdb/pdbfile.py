@@ -171,8 +171,7 @@ class PdbFile(object):
                     name = names[chk.name]
                     src = None
                     n = name.upper()
-                    if n in sources:
-                        src = sources[n]
+                    if n not in sources:
                         doctype_guid = None
                         language_guid = None
                         vendor_guid = None
@@ -188,9 +187,10 @@ class PdbFile(object):
                             directory.streams[guid_stream].read(reader, guid_bits)
                             (doctype_guid, language_guid, vendor_guid,
                              algorithm_id, checksum, source) = PdbFile.load_guid_stream(guid_bits)
-
                         src = PdbSource(name, doctype_guid, language_guid, vendor_guid, algorithm_id, checksum, source)
                         sources[name.upper()] = src
+                    else:
+                        src = sources[n]                        
                     checks[ni] = src
                     bits.position += chk.length
                     bits.align(4)
@@ -204,24 +204,29 @@ class PdbFile(object):
             sig = bits.read_int32()
             siz = bits.read_int32()
             end_sym = bits.position + siz
-
-            if sig == DEBUG_S_SUBSECTION.LINES:
+            #print('sig: %x' % sig, siz)
+            if sig == DEBUG_S_SUBSECTION.LINES or sig == DEBUG_S_SUBSECTION.IL_LINES:
                 sec = CV_LineSection()
 
                 sec.off = bits.read_uint32()
                 sec.sec = bits.read_uint16()
                 sec.flags = bits.read_uint16()
                 sec.cod = bits.read_uint32()
+                #print('0x%08x-0x%08x' % (sec.off, sec.off + sec.cod))
+                # XXX: this code doesn't handle the situation where a single CV_lineSection
+                # block contains lines for multiple functions
+
                 func_index = PdbFile.find_function(funcs, sec.sec, sec.off)
                 if func_index < 0:
-                    break
+                    bits.position = end_sym
+                    continue
                 func = funcs[func_index]
                 if func.sequence_points is None:
                     while func_index > 0:
                         f = funcs[func_index - 1]
                         if (f.sequence_points is not None or
                             f.segment != sec.sec or
-                            f.Address != sec.off):
+                            f.address != sec.off):
                             break
                         func = f
                         func_index -= 1
@@ -233,25 +238,12 @@ class PdbFile(object):
                         func = f
                         func_index += 1
                 if func.sequence_points is not None:
-                    break
+                    bits.position = end_sym
+                    continue
 
                 # Count the line blocks.
                 beg_sym = bits.position
-                blocks = 0
-                while bits.position < end_sym:
-                    src_file = CV_SourceFile()
-                    src_file.index = bits.read_uint32()
-                    src_file.count = bits.read_uint32()
-                    src_file.linsiz = bits.read_uint32()  # Size of payload.
-                    f = 0
-                    if (sec.flags & 1) != 0:
-                        f = 4
-                    linsiz = src_file.count * (8 + f)
-                    bits.position += linsiz
-                    blocks += 1
-
                 func.sequence_points = []
-
                 bits.position = beg_sym
                 while bits.position < end_sym:
                     src_file = CV_SourceFile()
@@ -262,9 +254,10 @@ class PdbFile(object):
                     src = checks[src_file.index]
                     tmp = PdbSequencePointCollection(src, src_file.count)
                     func.sequence_points.append(tmp)
-                    lines = copy.copy(tmp.lines)
+                    lines = tmp.lines
+                    ins = 0
 
-                    plin = bits.position;
+                    plin = bits.position
                     pcol = bits.position + 8 * src_file.count
                     for i in range(0, src_file.count):
                         line = CV_Line()
@@ -273,6 +266,19 @@ class PdbFile(object):
                         bits.position = plin + 8 * i
                         line.offset = bits.read_uint32()
                         line.flags = bits.read_uint32()
+                        # XXX: this hack kind of works, but this coe needs re-writing
+                        func_index = PdbFile.find_function(funcs, sec.sec, sec.off + line.offset)
+                        if func_index < 0:
+                            continue # no matching function start
+                        if funcs[func_index] != func:
+                            # we're into a new function
+                            func = funcs[func_index]
+                            func.sequence_points = []
+                            tmp = PdbSequencePointCollection(src, src_file.count)
+                            func.sequence_points.append(tmp)
+                            lines = tmp.lines
+                            ins = 0
+                        #print('0x%08x' % (sec.off + line.offset), func.name)
 
                         line_begin = line.flags & CV_Line_Flags.linenum_start
                         delta = (line.flags & CV_Line_Flags.delta_line_end) >> 24
@@ -282,11 +288,12 @@ class PdbFile(object):
                             column.off_column_start = bits.read_uint16()
                             column.off_column_end = bits.read_uint16()
 
-                        lines[i] = PdbSequencePoint(line.offset,
+                        lines[ins] = PdbSequencePoint(line.offset,
                                                     line_begin,
                                                     column.off_column_start,
                                                     line_begin + delta,
                                                     column.off_column_end)
+                        ins += 1
             bits.position = end_sym
 
     @classmethod
@@ -300,7 +307,7 @@ class PdbFile(object):
                                    name_index,
                                    reader,
                                    sources):
-        bits.position = 0;
+        bits.position = 0
         sig = bits.read_int32()
         if sig != 4:
             raise PdbDebugException('Invalid signature. (sig=%u)' % sig)
@@ -314,6 +321,7 @@ class PdbFile(object):
                                        sources)
             for i in range(0, len(funcs)):
                 func_list.append(funcs[i])
+        #print('<<<<<')
 
     EXT_DBIHEADER = 0x1
     EXT_MODULE_FILES = 0x2
@@ -411,7 +419,6 @@ class PdbFile(object):
         bits3 = BitAccess(512 * 1024)
         directory.streams[3].read(reader, bits3)
         modules, header = PdbFile.load_dbi_stream(bits3, read_all_strings)
-
         func_list = [] # PdbFunction
         source_dictionary = {} # string -> PdbSource
         if modules is not None:

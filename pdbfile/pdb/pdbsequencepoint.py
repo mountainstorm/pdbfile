@@ -39,7 +39,7 @@ class PdbSequencePoint(object):
         self.col_end = col_end
         '''The last column of the last line of this sequence point; ushort'''
 
-        def __str__(self):
-            if self.line_begin == self.line_end:
-                return 'iloffs: %u line: %u' % (self.offset, self.line_begin)
+    def __str__(self):
+        if self.line_begin == self.line_end:
+            return 'iloffs: %u line: %u' % (self.offset, self.line_begin)
         return 'iloffs: %u lines: %u-%u' % (self.offset, self.line_begin, self.line_end)

@@ -29,18 +29,18 @@ from dbiseccon import DbiSecCon
 
 class DbiModuleInfo(object):
     def __init__(self, bits, read_strings):
-        self.opened = bits.read_int32()              # 0..3
+        self.opened = bits.read_uint32()              # 0..3
         DbiSecCon(bits)                              # 4..31
         self.flags = bits.read_uint16()              # 32..33
         self.stream = bits.read_int16()              # 34..35
-        self.cb_syms = bits.read_int32()             # 36..39
-        self.cb_old_lines = bits.read_int32()        # 40..43
-        self.cb_lines = bits.read_int32()            # 44..57
+        self.cb_syms = bits.read_uint32()            # 36..39
+        self.cb_old_lines = bits.read_uint32()       # 40..43
+        self.cb_lines = bits.read_uint32()           # 44..57
         self.files = bits.read_int16()               # 48..49
-        self.pad1 = bits.read_int16()                # 50..51
+        self.pad1 = bits.read_uint16()               # 50..51
         self.offsets = bits.read_uint32()
-        self.ni_source = bits.read_int32()
-        self.ni_compiler = bits.read_int32()
+        self.ni_source = bits.read_uint32()
+        self.ni_compiler = bits.read_uint32()
         if read_strings:
             self.module_name = bits.read_cstring()
             self.object_name = bits.read_cstring()
