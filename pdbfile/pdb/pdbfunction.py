@@ -206,6 +206,8 @@ class PdbFunction(object):
         self.segment = None
         self.address = None
         self.scopes = [] # PdbScope
+        self.source_file = None
+        self.source_line = -1
         if proc is None and bits is None:
             return # default constructor
 

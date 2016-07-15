@@ -266,23 +266,28 @@ class PdbFile(object):
                         bits.position = plin + 8 * i
                         line.offset = bits.read_uint32()
                         line.flags = bits.read_uint32()
-                        # XXX: this hack kind of works, but this coe needs re-writing
-                        func_index = PdbFile.find_function(funcs, sec.sec, sec.off + line.offset)
-                        if func_index < 0:
-                            continue # no matching function start
-                        if funcs[func_index] != func:
-                            # we're into a new function
-                            func = funcs[func_index]
-                            func.sequence_points = []
-                            tmp = PdbSequencePointCollection(src, src_file.count)
-                            func.sequence_points.append(tmp)
-                            lines = tmp.lines
-                            ins = 0
-                        #print('0x%08x' % (sec.off + line.offset), func.name)
-
                         line_begin = line.flags & CV_Line_Flags.linenum_start
                         delta = (line.flags & CV_Line_Flags.delta_line_end) >> 24
                         # statement = (line.flags & CV_Line_Flags.f_statement) == 0
+
+                        # XXX: this hack kind of works, but this coe needs re-writing
+                        func_index = PdbFile.find_function(funcs, sec.sec, sec.off + line.offset)
+                        if func_index < 0:
+                            pass # no matching function start - add to current
+                        else:
+                            if funcs[func_index] != func:
+                                # we're into a new function
+                                func = funcs[func_index]
+                                func.sequence_points = []
+                                tmp = PdbSequencePointCollection(src, src_file.count)
+                                func.sequence_points.append(tmp)
+                                lines = tmp.lines
+                                ins = 0
+                            # XXX: this doens't work when a line correspponds to two functions
+                            func.source_file = src.name
+                            func.source_line = line_begin
+                        #print('0x%08x' % (sec.off + line.offset), func.name)
+
                         if (sec.flags & 1) != 0:
                             bits.position = pcol + 4 * i
                             column.off_column_start = bits.read_uint16()
