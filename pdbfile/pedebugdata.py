@@ -27,6 +27,7 @@ from pefile import PE, DEBUG_TYPE, DIRECTORY_ENTRY
 import struct
 import ntpath
 import uuid
+import os
 
 
 class PEUnknownDebugDataError(Exception):
