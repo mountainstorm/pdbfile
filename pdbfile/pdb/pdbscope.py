@@ -37,7 +37,7 @@ class PdbScope(object):
         '''A list of constants defined in this scope; PdbConstant[]'''
         self.slots = slots
         '''A list of variable slots in this function; PdbSlot[]'''
-        self.scopes = [PdbScope()]
+        self.scopes = []
         '''A list of sub-scopes within this scope; PdbScope[]'''
         self.used_namespaces = used_namespaces
         '''A list of namespaces used in this scope; unicode[]'''
@@ -106,4 +106,4 @@ class PdbScope(object):
         bits.read_uint16() # esiz
         erec = bits.read_uint16()
         if erec != SYM.S_END:
-            raise Exception('Missing S_END')
+            raise Exception('Missing S_END, %x' % erec)

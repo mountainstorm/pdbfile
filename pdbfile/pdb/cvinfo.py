@@ -844,7 +844,7 @@ class OEM_ID(object):
 class LeafOEM2(object):
     def __init__(self):
         # self.leaf = LEAF.LF_OEM2 # LF_OEM2 [TYPTYPE]
-        self.id_oem = uuid.uuid() # an oem ID (Guid)
+        self.id_oem = uuid.uuid1() # an oem ID (Guid)
         self.count = 0 # count of type indices to follow
         self.index = [] # (type index) array of type indices followed
                         # by OEM defined data
@@ -863,7 +863,7 @@ class LeafTypeServer(object):
 class LeafTypeServer2(object):
     def __init__(self):
         # self.leaf = LEAF.LF_TYPESERVER2 # LF_TYPESERVER2 [TYPTYPE]
-        self.sig70 = uuid.uuid() # guid signature
+        self.sig70 = uuid.uuid1() # guid signature
         self.age = 0 # age of database used by this module
         self.name = None # length prefixed name of PDB
 
@@ -2003,7 +2003,7 @@ class OemSymbol(object):
     def __init__(self):
         # self.reclen = 0 # Record length [SYMTYPE]
         # self.rectyp = SYM.S_OEM # S_OEM
-        self.id_oem = uuid.uuid() # an oem ID (GUID)
+        self.id_oem = uuid.uuid1() # an oem ID (GUID)
         self.typind = 0 # (type index) Type index
         self.rgl = [] # user data, force 4-byte alignment
 

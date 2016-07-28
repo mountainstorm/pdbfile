@@ -24,6 +24,7 @@
 from __future__ import unicode_literals, print_function
 
 
+import traceback
 import uuid
 from pdbdebugexception import PdbDebugException
 from pdbscope import PdbScope
@@ -215,14 +216,15 @@ class PdbFunction(object):
         self.token = proc.token
         self.segment = proc.seg
         self.address = proc.off
-        if proc.seg != 1:
-            raise PdbDebugException('Segment is %u, not 1.' % proc.seg)
+        # XXX: commenting out as ... we'll it was triggering :)
+        # if proc.seg != 1:
+        #     raise PdbDebugException('Segment is %u, not 1.' % proc.seg)
         if proc.parent != 0 or proc.next != 0:
             raise PdbDebugException('Warning parent=%u, next=%u' % (proc.parent, proc.next))
         constant_count, scope_count, slot_count, used_namespaces_count = PdbFunction.count_scopes_and_slots(bits, proc.end)
 
         if constant_count > 0 or slot_count > 0 or used_namespaces_count > 0:
-            self.scopes.append(PdbScope(self.address, proc.len, self.slots, self.constants, self.namespaces))
+            self.scopes.append(PdbScope(self.address, proc.length, self.slots, self.constants, self.namespaces))
         while bits.position < proc.end:
             siz = bits.read_uint16()
             star = bits.position
@@ -235,7 +237,7 @@ class PdbFunction(object):
                 oem.id_oem = bits.read_guid()
                 oem.typind = bits.read_uint32()
                 if oem.id_oem == PdbFunction.msil_meta_data:
-                    name = bits.read_strng()
+                    name = bits.read_string()
                     if name == 'MD2':
                         version = bits.read_uint8()
                         if version == 4:
@@ -257,8 +259,8 @@ class PdbFunction(object):
                 block.seg = bits.read_uint16()
                 block.name = bits.read_cstring()
                 bits.Position = stop
-                self.scopes.append(PdbScope(self.address, block, bits))
-                self.slot_token = self.scopes[-1].typind
+                #self.scopes.append(PdbScope.PdbScope(self.address, block, bits))
+                #self.slot_token = self.scopes[-1].typind
                 bits.position = block.end
                 
             elif rec == SYM.S_MANSLOT:

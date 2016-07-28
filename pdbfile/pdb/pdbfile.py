@@ -155,7 +155,7 @@ class PdbFile(object):
         # Read the files first
         begin = bits.position
         while bits.position < limit:
-            sig = bits.read_int32()
+            sig = bits.read_uint32()
             siz = bits.read_int32()
             place = bits.position
             end_sym = bits.position + siz
@@ -190,7 +190,7 @@ class PdbFile(object):
                         src = PdbSource(name, doctype_guid, language_guid, vendor_guid, algorithm_id, checksum, source)
                         sources[name.upper()] = src
                     else:
-                        src = sources[n]                        
+                        src = sources[n]
                     checks[ni] = src
                     bits.position += chk.length
                     bits.align(4)
@@ -251,6 +251,8 @@ class PdbFile(object):
                     src_file.count = bits.read_uint32()
                     src_file.linsiz = bits.read_uint32()  # Size of payload.
 
+                    if src_file.index not in checks:
+                        break # no filechks entry for this - strange?
                     src = checks[src_file.index]
                     tmp = PdbSequencePointCollection(src, src_file.count)
                     func.sequence_points.append(tmp)
@@ -446,7 +448,7 @@ class PdbFile(object):
         # After reading the functions, apply the token remapping table if it exists.
         if header.sn_token_rid_map != 0 and header.sn_token_rid_map != 0xffff:
             directory.streams[header.sn_token_rid_map].read(reader, bits)
-            rid_map = bits.read_uint32(len(directory.streams[header.sn_token_rid_map]) / 4)
+            rid_map = bits.read_uint32(directory.streams[header.sn_token_rid_map].length() / 4)
             for func in funcs:
                 func.token = 0x06000000 | rid_map[func.token & 0xffffff]
 
