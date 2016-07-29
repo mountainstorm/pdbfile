@@ -179,14 +179,17 @@ class PdbFile(object):
                         checksum = None
                         source = None
 
-                        guid_stream = None
-                        n = '/SRC/FILES/' + name.upper()
-                        if n in name_index:
-                            guid_stream = name_index[n]
-                            guid_bits = BitAccess(0x100)
-                            directory.streams[guid_stream].read(reader, guid_bits)
-                            (doctype_guid, language_guid, vendor_guid,
-                             algorithm_id, checksum, source) = PdbFile.load_guid_stream(guid_bits)
+                        # XXX: this doesn't appear to work - we get crashes as
+                        # we try to read massive lengths in load_guid_stream.
+                        # we don't need the code so, for the moment, comment out
+                        # guid_stream = None
+                        # n = '/SRC/FILES/' + name.upper()
+                        # if n in name_index:
+                        #     guid_stream = name_index[n]
+                        #     guid_bits = BitAccess(0x100)
+                        #     directory.streams[guid_stream].read(reader, guid_bits)
+                        #     (doctype_guid, language_guid, vendor_guid,
+                        #      algorithm_id, checksum, source) = PdbFile.load_guid_stream(guid_bits)
                         src = PdbSource(name, doctype_guid, language_guid, vendor_guid, algorithm_id, checksum, source)
                         sources[name.upper()] = src
                     else:
@@ -251,9 +254,10 @@ class PdbFile(object):
                     src_file.count = bits.read_uint32()
                     src_file.linsiz = bits.read_uint32()  # Size of payload.
 
-                    if src_file.index not in checks:
-                        break # no filechks entry for this - strange?
-                    src = checks[src_file.index]
+                    if src_file.index in checks:
+                        src = checks[src_file.index]
+                    else:
+                        src = PdbSource('<unknown>', None, None, None, None, None, None)
                     tmp = PdbSequencePointCollection(src, src_file.count)
                     func.sequence_points.append(tmp)
                     lines = tmp.lines
